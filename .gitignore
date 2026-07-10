@@ -1,0 +1,31 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# env
+.env
+.env.*
+
+# internal planning artifact, not part of the package
+PLAN.md
+
+# local n8n container staging dir
+.n8n-custom/
+
+# npm pack output (a bare `npm pack` drops the tarball in the repo root)
+*.tgz
+
+# test coverage
+coverage/
+.vitest/

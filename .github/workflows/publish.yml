@@ -1,0 +1,44 @@
+name: Publish
+
+# This workflow runs on the GitHub MIRROR only. Gitea (gitea.coracle.social) is
+# the primary remote; it pushes here so this can publish with npm provenance.
+#
+# Provenance is not optional: n8n's verification requires it, and
+# @n8n/scan-community-package hard-fails a package whose registry metadata has
+# no `dist.attestations.provenance`. npm can only generate it under
+# GITHUB_ACTIONS or GITLAB_CI, because it signs via Sigstore using the CI's OIDC
+# token. That is the entire reason this mirror exists.
+#
+# `provenance` attests repository + commit, so package.json's `repository.url`
+# must point at THIS repo, not at Gitea.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+      - run: npm test
+      - run: node scripts/verify-dist.mjs
+      - run: node scripts/scan.mjs
+      - run: npm publish
+        # publishConfig in package.json supplies --provenance --access public.
+        # Using npm Trusted Publishing (OIDC) via id-token: write above; no token
+        # needed. If you publish with a token instead, uncomment:
+        # env:
+        #   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

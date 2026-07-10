@@ -1,0 +1,80 @@
+{
+  "name": "n8n-nodes-nostr",
+  "version": "0.1.0",
+  "description": "n8n community node for Nostr: publish, query, and subscribe to relays, with NIP-42 auth and NIP-44 encryption",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "nostr",
+    "nip42",
+    "nip44"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/staab/n8n-nodes-nostr",
+  "author": {
+    "name": "Jonathan Staab",
+    "email": "jstaab@protonmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/staab/n8n-nodes-nostr.git"
+  },
+  "engines": {
+    "node": ">=22.22"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build": "rm -rf dist && tsc && node scripts/copy-icons.mjs",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier src test --write",
+    "lint": "eslint src test scripts --ext .ts,.mjs && tsc --noEmit",
+    "lintfix": "eslint src test --ext .ts --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "vendor": "node scripts/vendor.mjs",
+    "prepublishOnly": "npm run build && npm run lint && npm run test && node scripts/verify-dist.mjs && node scripts/scan.mjs",
+    "verify": "npm run build && node scripts/verify-dist.mjs",
+    "scan": "npm run build && node scripts/scan.mjs",
+    "n8n:reload": "node scripts/n8n-reload.mjs"
+  },
+  "files": [
+    "dist",
+    "index.js",
+    "LICENSE",
+    "THIRD_PARTY_LICENSES.md",
+    "VENDOR.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/NostrPrivateKeyApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Nostr/Nostr.node.js",
+      "dist/nodes/NostrTrigger/NostrTrigger.node.js"
+    ]
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "devDependencies": {
+    "@n8n/scan-community-package": "^0.25.0",
+    "@types/node": "^22.10.2",
+    "@types/ws": "^8.5.13",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-n8n-nodes-base": "^1.16.7",
+    "n8n-workflow": "^2.30.1",
+    "prettier": "^3.4.2",
+    "typescript": "~5.8.3",
+    "vitest": "^2.1.8",
+    "ws": "^8.18.0"
+  }
+}
