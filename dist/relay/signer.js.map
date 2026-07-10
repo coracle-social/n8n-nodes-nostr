@@ -1,0 +1,1 @@
+{"version":3,"file":"signer.js","sourceRoot":"","sources":["../../src/relay/signer.ts"],"names":[],"mappings":";;AAUA,kDAKC;AAfD,oCAAsD;AAUtD,SAAgB,mBAAmB,CAAC,SAAqB;IACxD,OAAO;QACN,YAAY,EAAE,GAAG,EAAE,CAAC,IAAA,oBAAY,EAAC,SAAS,CAAC;QAC3C,SAAS,EAAE,CAAC,QAAuB,EAAS,EAAE,CAAC,IAAA,qBAAa,EAAC,EAAE,GAAG,QAAQ,EAAE,EAAE,SAAS,CAAC;KACxF,CAAA;AACF,CAAC"}

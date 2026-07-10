@@ -1,6 +1,9 @@
 node_modules/
-dist/
 *.tsbuildinfo
+
+# dist/ is intentionally committed: n8n's verification pre-check resolves the
+# paths in package.json's `n8n` block (dist/credentials/…, dist/nodes/…) against
+# the GitHub repo, not the npm tarball. The ci.yml drift-guard keeps it in sync.
 
 # logs
 npm-debug.log*
