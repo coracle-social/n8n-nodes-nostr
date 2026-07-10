@@ -1,17 +1,20 @@
 {
-  "node": "n8n-nodes-base.nostr",
+  "node": "n8n-nodes-nostr.nostr",
   "nodeVersion": "1.0",
   "codexVersion": "1.0",
-  "categories": ["Communication", "Development"],
+  "categories": [
+    "Communication",
+    "Development"
+  ],
   "resources": {
     "credentialDocumentation": [
       {
-        "url": "https://github.com/staab/n8n-nodes-nostr#credentials"
+        "url": "https://github.com/coracle-social/n8n-nodes-nostr#credentials"
       }
     ],
     "primaryDocumentation": [
       {
-        "url": "https://github.com/staab/n8n-nodes-nostr#readme"
+        "url": "https://github.com/coracle-social/n8n-nodes-nostr#readme"
       }
     ]
   }

@@ -10,14 +10,14 @@
     "nip44"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/staab/n8n-nodes-nostr",
+  "homepage": "https://github.com/coracle-social/n8n-nodes-nostr",
   "author": {
     "name": "Jonathan Staab",
     "email": "jstaab@protonmail.com"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/staab/n8n-nodes-nostr.git"
+    "url": "git+https://github.com/coracle-social/n8n-nodes-nostr.git"
   },
   "engines": {
     "node": ">=22.22"

@@ -401,11 +401,16 @@ gitea (origin, source of truth)  ──push mirror──►  github (publish onl
 
 One-time. Gitea push-mirrors to GitHub; GitHub only ever publishes.
 
-**1. Create the GitHub repo.** `staab/n8n-nodes-nostr`, **public**, and
+**1. Create the GitHub repo.** `coracle-social/n8n-nodes-nostr`, **public**, and
 completely empty — no README, no licence, no `.gitignore`. Gitea's mirror is a
 **force push** and will overwrite anything already there. The URL must match
 `repository.url` in `package.json` **case-sensitively**, or npm rejects the
 provenance statement.
+
+If the repo's default branch is `master` while this repo's is `main`, GitHub
+adopts the first branch pushed into an empty repo. Confirm afterwards under
+Settings → General → Default branch, since the publish workflow and the
+provenance subject both reference the branch you release from.
 
 **2. Create a GitHub token** (Settings → Developer settings → Personal access
 tokens). It needs `public_repo` **and** `workflow` — without `workflow`, the push
@@ -416,7 +421,7 @@ is rejected the moment it carries a change to `.github/workflows/`.
 
 | Field | Value |
 | --- | --- |
-| Git Remote Repository URL | `https://github.com/staab/n8n-nodes-nostr.git` |
+| Git Remote Repository URL | `https://github.com/coracle-social/n8n-nodes-nostr.git` |
 | Authorization | your GitHub username, with the token as the password |
 | Sync when new commits are pushed | enable it (Gitea 1.18+) |
 

@@ -7,7 +7,7 @@ export class NostrPrivateKeyApi implements ICredentialType {
 
 	icon: Icon = { light: 'file:nostr.svg', dark: 'file:nostr.dark.svg' }
 
-	documentationUrl = 'https://github.com/staab/n8n-nodes-nostr'
+	documentationUrl = 'https://github.com/coracle-social/n8n-nodes-nostr'
 
 	properties: INodeProperties[] = [
 		{
