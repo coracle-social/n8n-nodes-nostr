@@ -17,7 +17,7 @@ import type { AuthOptions, PerRelayResult, ReqHandle, ReqHandlers } from './type
 /**
  * `WebSocket` has been a Node global since v22, and n8n requires >= 22.22.
  * It is referenced bare rather than through `globalThis`, which n8n's
- * community-node ruleset forbids. See src/relay/timers.ts.
+ * community-node ruleset forbids. See relay/timers.ts.
  */
 type Socket = WebSocket
 

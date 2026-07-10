@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { RelayPool } from '../../src/relay/RelayPool'
-import { query } from '../../src/relay/query'
-import { finalizeEvent } from '../../src/nostr/pure'
+import { RelayPool } from '../../relay/RelayPool'
+import { query } from '../../relay/query'
+import { finalizeEvent } from '../../nostr/pure'
 import { MockRelay, startMockRelay } from '../helpers/mockRelay'
 import { SK, makeEvent } from '../helpers/events'
 

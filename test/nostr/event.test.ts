@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { finalizeEvent, getEventHash, getPublicKey, serializeEvent, verifyEvent } from '../../src/nostr/pure'
-import { normalizeSecretKey } from '../../src/nostr/keys'
-import type { Event } from '../../src/nostr/core'
+import { finalizeEvent, getEventHash, getPublicKey, serializeEvent, verifyEvent } from '../../nostr/pure'
+import { normalizeSecretKey } from '../../nostr/keys'
+import type { Event } from '../../nostr/core'
 
 /** A real, signed kind-1 event from the nostr-tools fixtures. */
 const KNOWN: Event = {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { RelayPool } from '../../src/relay/RelayPool'
-import { publish } from '../../src/relay/publish'
+import { RelayPool } from '../../relay/RelayPool'
+import { publish } from '../../relay/publish'
 import { MockRelay, startMockRelay } from '../helpers/mockRelay'
 import { makeEvent } from '../helpers/events'
 

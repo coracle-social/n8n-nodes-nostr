@@ -13,7 +13,11 @@ import { describe, expect, it } from 'vitest'
 import pkg from '../package.json'
 
 const ROOT = join(__dirname, '..')
-const SRC = join(ROOT, 'src')
+
+// Source lives at the repo root (credentials/, nodes/, nostr/, relay/), mirroring
+// the dist/ layout n8n's verification resolves against; vendored crypto is vendor/.
+const OUR_DIRS = ['credentials', 'nodes', 'nostr', 'relay']
+const VENDOR = join(ROOT, 'vendor')
 
 function walk(dir: string): string[] {
 	const out: string[] = []
@@ -36,11 +40,11 @@ const stripComments = (src: string): string =>
 const importsOf = (file: string): string[] =>
 	[...stripComments(readFileSync(file, 'utf8')).matchAll(/from\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
 
-/** Our own source: everything under src/ that is not vendored third-party code. */
-const ourSources = walk(SRC).filter((f) => !f.includes(`${join('src', 'vendor')}`))
-const vendorSources = walk(join(SRC, 'vendor'))
+/** Our own source: the node/protocol dirs; vendored third-party code is separate. */
+const ourSources = OUR_DIRS.flatMap((dir) => walk(join(ROOT, dir)))
+const vendorSources = walk(VENDOR)
 
-const CHACHA = join(SRC, 'nostr', 'chacha.ts')
+const CHACHA = join(ROOT, 'nostr', 'chacha.ts')
 
 describe('package.json', () => {
 	it('declares no runtime dependencies', () => {
@@ -112,7 +116,7 @@ describe('vendored source is self-contained', () => {
 
 	it('carries its upstream licenses', () => {
 		for (const dir of ['noble-hashes', 'noble-curves', 'scure-base']) {
-			const license = readFileSync(join(SRC, 'vendor', dir, 'LICENSE'), 'utf8')
+			const license = readFileSync(join(VENDOR, dir, 'LICENSE'), 'utf8')
 			expect(license, dir).toMatch(/MIT/i)
 		}
 	})
@@ -133,7 +137,7 @@ describe('websockets come from the platform', () => {
 	})
 
 	it('constructs the bare WebSocket global', () => {
-		const conn = readFileSync(join(SRC, 'relay', 'Connection.ts'), 'utf8')
+		const conn = readFileSync(join(ROOT, 'relay', 'Connection.ts'), 'utf8')
 		expect(conn).toMatch(/new WebSocket\(/)
 	})
 })
@@ -142,7 +146,7 @@ describe('websockets come from the platform', () => {
  * Mirrors `no-restricted-globals` from @n8n/eslint-plugin-community-nodes, the
  * ruleset n8n's own `@n8n/scan-community-package` runs against a submission.
  * WebSocket and AbortSignal are deliberately absent from their list, which is
- * what makes src/relay/timers.ts possible.
+ * what makes relay/timers.ts possible.
  */
 describe('no restricted globals reach the published build', () => {
 	const RESTRICTED = [

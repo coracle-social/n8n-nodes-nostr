@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { normalizeId, normalizePubkey, normalizeSecretKey } from '../../src/nostr/keys'
-import { bytesToHex } from '../../src/vendor/noble-hashes/utils'
+import { normalizeId, normalizePubkey, normalizeSecretKey } from '../../nostr/keys'
+import { bytesToHex } from '../../vendor/noble-hashes/utils'
 
 const SK_HEX = '67dea2ed018072d675f5415ecfaed7d2597555e202d85b3d65ea4e58d2d92ffa'
 const NSEC = 'nsec1vl029mgpspedva04g90vltkh6fvh240zqtv9k0t9af8935ke9laqsnlfe5'

@@ -9,11 +9,11 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { schnorr } from '../src/vendor/noble-curves/secp256k1'
-import { sha256 } from '../src/vendor/noble-hashes/sha2'
-import { hmac } from '../src/vendor/noble-hashes/hmac'
-import { hkdf } from '../src/vendor/noble-hashes/hkdf'
-import { bech32 } from '../src/vendor/scure-base/index'
+import { schnorr } from '../vendor/noble-curves/secp256k1'
+import { sha256 } from '../vendor/noble-hashes/sha2'
+import { hmac } from '../vendor/noble-hashes/hmac'
+import { hkdf } from '../vendor/noble-hashes/hkdf'
+import { bech32 } from '../vendor/scure-base/index'
 
 const hex = (s: string) => Uint8Array.from(Buffer.from(s, 'hex'))
 const toHex = (b: Uint8Array) => Buffer.from(b).toString('hex')

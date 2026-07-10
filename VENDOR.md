@@ -9,9 +9,9 @@ the code in each directory. Regenerate with `node scripts/vendor.mjs`; never han
 
 | Package | Version | License | Vendored to | Files | Tarball SHA-256 |
 | --- | --- | --- | --- | --- | --- |
-| `@noble/hashes` | 1.8.0 | MIT | `src/vendor/noble-hashes/` | 7 | `e8a765d92c04faaccba8776411c5038cb195f812ee629fce07e1d2e6aec80ea0` |
-| `@noble/curves` | 1.9.7 | MIT | `src/vendor/noble-curves/` | 7 | `c4c5545645b8d58a080d2faf84982f6fe5dc3a0516e11de8dc571b38cab565e9` |
-| `@scure/base` | 1.2.6 | MIT | `src/vendor/scure-base/` | 1 | `09c1bdef467fd38e0d6a96dd56511c0b8d8d5cff6d4c6bd387dae6b31048e82c` |
+| `@noble/hashes` | 1.8.0 | MIT | `vendor/noble-hashes/` | 7 | `e8a765d92c04faaccba8776411c5038cb195f812ee629fce07e1d2e6aec80ea0` |
+| `@noble/curves` | 1.9.7 | MIT | `vendor/noble-curves/` | 7 | `c4c5545645b8d58a080d2faf84982f6fe5dc3a0516e11de8dc571b38cab565e9` |
+| `@scure/base` | 1.2.6 | MIT | `vendor/scure-base/` | 1 | `09c1bdef467fd38e0d6a96dd56511c0b8d8d5cff6d4c6bd387dae6b31048e82c` |
 
 ## What we take, and why
 

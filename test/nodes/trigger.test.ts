@@ -3,7 +3,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { NostrTrigger } from '../../src/nodes/NostrTrigger/NostrTrigger.node'
+import { NostrTrigger } from '../../nodes/NostrTrigger/NostrTrigger.node'
 import { MockRelay, startMockRelay } from '../helpers/mockRelay'
 import { mockTriggerFunctions } from '../helpers/mockExecuteFns'
 import { SK_HEX, makeEvent } from '../helpers/events'

@@ -23,7 +23,7 @@ export function toUnixSeconds(value: unknown): number | undefined {
 }
 
 /**
- * Runs one of the `normalize*` helpers from src/nostr, restating the error it
+ * Runs one of the `normalize*` helpers from nostr/, restating the error it
  * throws against this node so the editor can point at the offending item.
  */
 export function normalizeOrThrow<T>(

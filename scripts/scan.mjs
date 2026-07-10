@@ -10,7 +10,7 @@
  * It applies `@n8n/eslint-plugin-community-nodes`, which — among much else —
  * forbids runtime dependencies, non-MIT licenses, and the `setTimeout`,
  * `clearTimeout`, `globalThis` and `process` globals. That last rule is why
- * src/relay/timers.ts exists.
+ * relay/timers.ts exists.
  *
  * Run: npm run scan
  */

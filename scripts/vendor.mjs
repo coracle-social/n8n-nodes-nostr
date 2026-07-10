@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Re-vendors third-party cryptography into src/vendor/.
+ * Re-vendors third-party cryptography into vendor/.
  *
  * n8n's verified-community-node guidelines forbid runtime dependencies, so the
  * package.json "dependencies" field must stay empty. The crypto we cannot get
@@ -8,9 +8,9 @@
  * into the tree and compiled by our own tsc.
  *
  * Run: node scripts/vendor.mjs
- * Then: git diff --stat src/vendor
+ * Then: git diff --stat vendor
  *
- * This script is the ONLY sanctioned way to modify src/vendor. Hand edits will
+ * This script is the ONLY sanctioned way to modify vendor/. Hand edits will
  * be overwritten. See VENDOR.md for the provenance record it emits.
  */
 import { execFileSync } from 'node:child_process'
@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const VENDOR = join(ROOT, 'src', 'vendor')
+const VENDOR = join(ROOT, 'vendor')
 
 /**
  * `dir` is the vendored directory name, `root` the path inside the npm tarball
@@ -294,7 +294,7 @@ try {
 	for (const { pkg, sha } of record) {
 		const files = results.find((r) => r.pkg.dir === pkg.dir).files.length
 		lines.push(
-			`| \`${pkg.npm}\` | ${pkg.version} | MIT | \`src/vendor/${pkg.dir}/\` | ${files} | \`${sha}\` |`,
+			`| \`${pkg.npm}\` | ${pkg.version} | MIT | \`vendor/${pkg.dir}/\` | ${files} | \`${sha}\` |`,
 		)
 	}
 	lines.push(

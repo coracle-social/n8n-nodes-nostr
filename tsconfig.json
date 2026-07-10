@@ -16,9 +16,9 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "test", "**/*.test.ts"]
+  "include": ["credentials/**/*.ts", "nodes/**/*.ts", "nostr/**/*.ts", "relay/**/*.ts", "vendor/**/*.ts"],
+  "exclude": ["node_modules", "dist", "test", "scripts", "**/*.test.ts"]
 }

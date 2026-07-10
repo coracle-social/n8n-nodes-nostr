@@ -3,8 +3,8 @@
  */
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { NostrV1 } from '../../src/nodes/Nostr/v1/NostrV1.node'
-import { nip44 } from '../../src/nostr'
+import { NostrV1 } from '../../nodes/Nostr/v1/NostrV1.node'
+import { nip44 } from '../../nostr'
 import { MockRelay, startMockRelay } from '../helpers/mockRelay'
 import { mockExecuteFunctions } from '../helpers/mockExecuteFns'
 import { PUBKEY, SK, SK_HEX, makeEvent } from '../helpers/events'

@@ -6,7 +6,7 @@ import {
 	parseRelayMessage,
 	serializeCloseFrame,
 	serializeReqFrame,
-} from '../../src/relay/messages'
+} from '../../relay/messages'
 
 describe('parseRelayMessage', () => {
 	it('parses EVENT', () => {

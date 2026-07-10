@@ -1,15 +1,15 @@
 /**
  * An in-process NIP-01 relay, with enough NIP-42 to exercise the real handshake.
  *
- * `ws` is a devDependency and is only ever imported from here — src/ uses the
- * global WebSocket. Every test relay must be stopped in afterAll or vitest hangs.
+ * `ws` is a devDependency and is only ever imported from here — our runtime source
+ * uses the global WebSocket. Every test relay must be stopped in afterAll or vitest hangs.
  */
 import { WebSocketServer, type WebSocket } from 'ws'
 import type { AddressInfo } from 'node:net'
 
-import { matchFilters } from '../../src/nostr/filter'
-import { verifyEvent } from '../../src/nostr/pure'
-import type { Event, Filter } from '../../src/nostr/core'
+import { matchFilters } from '../../nostr/filter'
+import { verifyEvent } from '../../nostr/pure'
+import type { Event, Filter } from '../../nostr/core'
 
 export type AuthMode =
 	/** Never asks for auth. */

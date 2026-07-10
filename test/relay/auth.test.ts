@@ -4,10 +4,10 @@
  */
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { RelayPool } from '../../src/relay/RelayPool'
-import { publish } from '../../src/relay/publish'
-import { query } from '../../src/relay/query'
-import { AuthState } from '../../src/relay/types'
+import { RelayPool } from '../../relay/RelayPool'
+import { publish } from '../../relay/publish'
+import { query } from '../../relay/query'
+import { AuthState } from '../../relay/types'
 import { MockRelay, startMockRelay } from '../helpers/mockRelay'
 import { SIGNER, makeEvent } from '../helpers/events'
 
@@ -94,7 +94,7 @@ describe('NIP-42 on subscriptions', () => {
 		const pool = newPool()
 		const errors: string[] = []
 
-		const { subscribe } = await import('../../src/relay/subscribe')
+		const { subscribe } = await import('../../relay/subscribe')
 		await subscribe(pool, [{ kinds: [1] }], [relay.url], {
 			...NO_AUTH,
 			onEvent: () => undefined,

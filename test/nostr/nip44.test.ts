@@ -6,10 +6,10 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { calcPaddedLen, decrypt, encrypt, getConversationKey, getMessageKeys } from '../../src/nostr/nip44'
-import { schnorr } from '../../src/vendor/noble-curves/secp256k1'
-import { bytesToHex, hexToBytes } from '../../src/vendor/noble-hashes/utils'
-import { base64 } from '../../src/vendor/scure-base/index'
+import { calcPaddedLen, decrypt, encrypt, getConversationKey, getMessageKeys } from '../../nostr/nip44'
+import { schnorr } from '../../vendor/noble-curves/secp256k1'
+import { bytesToHex, hexToBytes } from '../../vendor/noble-hashes/utils'
+import { base64 } from '../../vendor/scure-base/index'
 
 import vectors from '../fixtures/nip44.vectors.json'
 

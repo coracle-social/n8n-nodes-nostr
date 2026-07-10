@@ -174,7 +174,7 @@ dependencies. Node's standard library covers SHA-256, HMAC, HKDF, and ChaCha20,
 but not the BIP-340 schnorr signatures every Nostr event needs, nor bech32 for
 NIP-19. Rather than add runtime dependencies, this package vendors the minimal
 source it needs — `@noble/curves`, `@noble/hashes`, and `@scure/base` — into
-`src/vendor/` and compiles it with its own TypeScript build. ChaCha20 for NIP-44
+`vendor/` and compiles it with its own TypeScript build. ChaCha20 for NIP-44
 uses Node's built-in `node:crypto`.
 
 The result: `package.json` has `"dependencies": {}`, and the only Node built-in

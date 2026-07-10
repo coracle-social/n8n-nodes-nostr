@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import type { NostrEvent } from '../../src/nostr/core'
+import type { NostrEvent } from '../../nostr/core'
 import {
 	isAddressableKind,
 	isEphemeralKind,
 	isReplaceableKind,
 	pickNewest,
-} from '../../src/nostr/kinds'
+} from '../../nostr/kinds'
 
 const ALICE = 'a'.repeat(64)
 const BOB = 'b'.repeat(64)

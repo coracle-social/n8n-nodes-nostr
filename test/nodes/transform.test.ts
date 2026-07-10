@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { eventToItem, eventToJson, toItem } from '../../src/nodes/shared/transform'
+import { eventToItem, eventToJson, toItem } from '../../nodes/shared/transform'
 import { makeEvent } from '../helpers/events'
 
 const RELAY = 'wss://relay.example'

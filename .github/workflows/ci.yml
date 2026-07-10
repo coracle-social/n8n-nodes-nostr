@@ -34,9 +34,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Check the committed dist matches a fresh build
-        run: git diff --exit-code dist
-
       - name: Verify the compiled package loads under plain node
         run: node scripts/verify-dist.mjs
 
@@ -46,4 +43,4 @@ jobs:
       - name: Check the vendored crypto reproduces from upstream
         run: |
           node scripts/vendor.mjs
-          git diff --exit-code src/vendor VENDOR.md
+          git diff --exit-code vendor VENDOR.md

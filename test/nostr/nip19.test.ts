@@ -8,8 +8,8 @@ import {
 	npubEncode,
 	nprofileEncode,
 	nsecEncode,
-} from '../../src/nostr/nip19'
-import { bytesToHex, hexToBytes } from '../../src/vendor/noble-hashes/utils'
+} from '../../nostr/nip19'
+import { bytesToHex, hexToBytes } from '../../vendor/noble-hashes/utils'
 
 const PUBKEY = '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d'
 const ID = '5c04292b1080052d593c561c62a92f1cfda739cc14e9e8c26765165ee3a29b7d'

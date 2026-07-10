@@ -2,9 +2,9 @@
  * ESLint config for n8n-nodes-nostr.
  *
  * - The n8n community-node ruleset (eslint-plugin-n8n-nodes-base) is applied to
- *   the node and credential source under src/nodes and src/credentials.
+ *   the node and credential source under nodes/ and credentials/.
  * - Everything else is checked by @typescript-eslint's recommended rules.
- * - Vendored crypto (src/vendor) is not our code and is not linted; see
+ * - Vendored crypto (vendor/) is not our code and is not linted; see
  *   .eslintignore.
  *
  * No type-aware linting (no parserOptions.project): tsconfig.json excludes the
@@ -26,10 +26,10 @@ module.exports = {
 	},
 	plugins: ['@typescript-eslint'],
 	extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended'],
-	ignorePatterns: ['.eslintrc.js', '.prettierrc.js', 'dist/**', 'node_modules/**', 'src/vendor/**'],
+	ignorePatterns: ['.eslintrc.js', '.prettierrc.js', 'dist/**', 'node_modules/**', 'vendor/**'],
 	rules: {
 		'@typescript-eslint/no-explicit-any': 'off',
-		// The protocol code in src/nostr is adapted from nostr-tools and keeps its
+		// The protocol code in nostr/ is adapted from nostr-tools and keeps its
 		// deliberate bare `// @ts-ignore` suppressions on dynamically-typed index
 		// writes, where `@ts-expect-error` would itself error on non-failing lines.
 		'@typescript-eslint/ban-ts-comment': 'off',
@@ -44,7 +44,7 @@ module.exports = {
 			// actually check node and credential source live in these two configs.
 			// package.json itself is enforced by test/compliance.test.ts, which does
 			// not need eslint to parse JSON.
-			files: ['src/credentials/**/*.ts'],
+			files: ['credentials/**/*.ts'],
 			plugins: ['n8n-nodes-base'],
 			extends: ['plugin:n8n-nodes-base/credentials'],
 			rules: {
@@ -56,7 +56,7 @@ module.exports = {
 			},
 		},
 		{
-			files: ['src/nodes/**/*.ts'],
+			files: ['nodes/**/*.ts'],
 			plugins: ['n8n-nodes-base'],
 			extends: ['plugin:n8n-nodes-base/nodes'],
 		},

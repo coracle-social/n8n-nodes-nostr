@@ -1,12 +1,12 @@
 # Third-party licenses
 
 `n8n-nodes-nostr` declares no runtime dependencies. Instead of depending on them,
-it vendors a small amount of cryptography source into `src/vendor/` (see
+it vendors a small amount of cryptography source into `vendor/` (see
 `VENDOR.md`) and compiles it with the package's own TypeScript build. The original
 licenses for that vendored code are reproduced in full below, and copies also ship
-alongside the code in `src/vendor/*/LICENSE`.
+alongside the code in `vendor/*/LICENSE`.
 
-The Nostr protocol logic in `src/nostr/` is adapted from
+The Nostr protocol logic in `nostr/` is adapted from
 [`nostr-tools`](https://github.com/nbd-wtf/nostr-tools) (version 2.23.3), which is
 released into the public domain under the Unlicense. That notice is reproduced at
 the end.
@@ -15,7 +15,7 @@ the end.
 
 ## @noble/hashes (1.8.0)
 
-Vendored to `src/vendor/noble-hashes/`. SHA-256, HMAC and HKDF primitives.
+Vendored to `vendor/noble-hashes/`. SHA-256, HMAC and HKDF primitives.
 
 ```
 The MIT License (MIT)
@@ -45,7 +45,7 @@ THE SOFTWARE.
 
 ## @noble/curves (1.9.7)
 
-Vendored to `src/vendor/noble-curves/`. BIP-340 schnorr signing and verification.
+Vendored to `vendor/noble-curves/`. BIP-340 schnorr signing and verification.
 
 ```
 The MIT License (MIT)
@@ -75,7 +75,7 @@ THE SOFTWARE.
 
 ## @scure/base (1.2.6)
 
-Vendored to `src/vendor/scure-base/`. bech32 / bech32m for NIP-19.
+Vendored to `vendor/scure-base/`. bech32 / bech32m for NIP-19.
 
 ```
 The MIT License (MIT)
@@ -105,7 +105,7 @@ THE SOFTWARE.
 
 ## nostr-tools (2.23.3) — protocol logic adapted
 
-The code in `src/nostr/` (event serialization/hashing, NIP-19, NIP-42, NIP-44,
+The code in `nostr/` (event serialization/hashing, NIP-19, NIP-42, NIP-44,
 filters, kinds) is adapted from `nostr-tools`, with every `@noble/*` and `@scure/*`
 import rewritten to the vendored copies above. `nostr-tools` is released into the
 public domain under the Unlicense:

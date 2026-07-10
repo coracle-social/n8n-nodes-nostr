@@ -4,11 +4,11 @@
  */
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { RelayPool } from '../../src/relay/RelayPool'
-import { subscribe } from '../../src/relay/subscribe'
+import { RelayPool } from '../../relay/RelayPool'
+import { subscribe } from '../../relay/subscribe'
 import { MockRelay, startMockRelay } from '../helpers/mockRelay'
 import { makeEvent } from '../helpers/events'
-import type { Event } from '../../src/nostr'
+import type { Event } from '../../nostr'
 
 const relays: MockRelay[] = []
 const pools: RelayPool[] = []

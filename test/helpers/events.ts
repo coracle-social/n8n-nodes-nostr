@@ -1,7 +1,7 @@
-import { finalizeEvent } from '../../src/nostr/pure'
-import { normalizeSecretKey } from '../../src/nostr/keys'
-import { makeSecretKeySigner } from '../../src/relay/signer'
-import type { Event } from '../../src/nostr/core'
+import { finalizeEvent } from '../../nostr/pure'
+import { normalizeSecretKey } from '../../nostr/keys'
+import { makeSecretKeySigner } from '../../relay/signer'
+import type { Event } from '../../nostr/core'
 
 export const SK_HEX = '67dea2ed018072d675f5415ecfaed7d2597555e202d85b3d65ea4e58d2d92ffa'
 export const SK = normalizeSecretKey(SK_HEX)
