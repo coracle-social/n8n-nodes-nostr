@@ -1,7 +1,7 @@
 name: Publish
 
 # This workflow runs on the GitHub MIRROR only. Gitea (gitea.coracle.social) is
-# the primary remote; it pushes here so this can publish with npm provenance.
+# the primary remote; it push-mirrors here so this can publish with npm provenance.
 #
 # Provenance is not optional: n8n's verification requires it, and
 # @n8n/scan-community-package hard-fails a package whose registry metadata has
@@ -13,32 +13,59 @@ name: Publish
 # must point at THIS repo, not at Gitea.
 
 on:
+  # Gitea's push mirror replicates branches and tags, but NOT releases — a
+  # mirrored tag creates no GitHub Release, so `release: published` alone would
+  # never fire. Tagging on Gitea is what triggers a publish.
+  push:
+    tags: ['v*']
+  # Kept so cutting a Release by hand on GitHub also publishes.
   release:
     types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: read
-  id-token: write
+  id-token: write # required for provenance; without it npm errors EUSAGE
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # provenance requires a GitHub-hosted runner
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
           cache: npm
+
       - run: npm ci
+
+      # A tag that disagrees with package.json would publish the wrong version
+      # under a provenance statement that says otherwise. Fail loudly instead.
+      - name: Check the tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p 'require("./package.json").version')"
+          echo "tag=$TAG package.json=$PKG"
+          test "$TAG" = "$PKG"
+
       - run: npm run build
       - run: npm run lint
       - run: npm test
       - run: node scripts/verify-dist.mjs
       - run: node scripts/scan.mjs
-      - run: npm publish
-        # publishConfig in package.json supplies --provenance --access public.
-        # Using npm Trusted Publishing (OIDC) via id-token: write above; no token
-        # needed. If you publish with a token instead, uncomment:
-        # env:
-        #   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # publishConfig in package.json supplies --provenance --access public.
+      # Provenance works with a plain npm token; Trusted Publishing is optional
+      # and cannot be configured for a package that does not exist on npm yet,
+      # so the first publish must use NPM_TOKEN.
+      - name: Publish to npm with provenance
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

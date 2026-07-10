@@ -397,25 +397,64 @@ gitea (origin, source of truth)  ──push mirror──►  github (publish onl
            lint · test · verify · scan                         npm publish --provenance
 ```
 
-### Releasing
+### Setting up the GitHub mirror
 
-1. Push to Gitea; CI must be green.
-2. The mirror syncs to GitHub.
-3. Cut a GitHub release. `.github/workflows/publish.yml` runs `npm ci`, the whole
-   gate, and `npm publish` — `publishConfig` supplies `--provenance --access public`.
+One-time. Gitea push-mirrors to GitHub; GitHub only ever publishes.
 
-Prerequisites on the GitHub side: a public repo whose URL matches
-`repository.url`, `permissions: id-token: write` (already set), and either an npm
-Trusted Publisher for the package or an `NPM_TOKEN` secret.
+**1. Create the GitHub repo.** `staab/n8n-nodes-nostr`, **public**, and
+completely empty — no README, no licence, no `.gitignore`. Gitea's mirror is a
+**force push** and will overwrite anything already there. The URL must match
+`repository.url` in `package.json` **case-sensitively**, or npm rejects the
+provenance statement.
 
-Running `npm publish` from a laptop **fails on purpose**:
+**2. Create a GitHub token** (Settings → Developer settings → Personal access
+tokens). It needs `public_repo` **and** `workflow` — without `workflow`, the push
+is rejected the moment it carries a change to `.github/workflows/`.
 
+**3. Add the push mirror in Gitea.** Repository → Settings → Repository →
+*Mirror Settings* → **Add Push Mirror**:
+
+| Field | Value |
+| --- | --- |
+| Git Remote Repository URL | `https://github.com/staab/n8n-nodes-nostr.git` |
+| Authorization | your GitHub username, with the token as the password |
+| Sync when new commits are pushed | enable it (Gitea 1.18+) |
+
+Press **Synchronize Now**. Branches *and tags* replicate.
+
+**4. Add the npm token on GitHub.** Create an npm **granular access token** with
+read+write on `n8n-nodes-nostr` (or an Automation token), then add it to the
+mirror repo as the secret `NPM_TOKEN`.
+
+Provenance does **not** require npm Trusted Publishing — a token plus
+`--provenance` and `id-token: write` is enough. That matters, because a Trusted
+Publisher cannot be configured for a package that does not exist on npm yet, so
+the first release has to use a token. You can switch afterwards.
+
+### Cutting a release
+
+```bash
+npm version patch          # or minor / major — updates package.json, makes a tag
+git push origin main
+git push origin --tags     # the tag reaches GitHub via the mirror
 ```
-npm error EUSAGE Automatic provenance generation not supported for provider: <name>
-```
 
-That guard is the point. It makes it impossible to accidentally ship an
-unattested build that n8n would then refuse to verify.
+The tag triggers `.github/workflows/publish.yml` on the mirror. It re-runs the
+whole gate, asserts the tag matches `package.json`'s version, then publishes with
+provenance.
+
+The trigger is `push: tags: ['v*']`, not `release: published`. Gitea's mirror
+replicates commits and tags, but it cannot create a **GitHub Release** — a
+release-only trigger would never fire. (`release: published` and
+`workflow_dispatch` are kept as manual escape hatches.)
+
+Two things that surprise people:
+
+- Workflows **do** run on mirror-pushed commits, because the mirror authenticates
+  as you via the token. Pushes made with the built-in `GITHUB_TOKEN` are the ones
+  that don't trigger workflows.
+- The mirror force-pushes. Never commit directly on GitHub; it is erased on the
+  next sync.
 
 ## Development
 
