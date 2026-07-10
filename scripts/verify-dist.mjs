@@ -143,6 +143,9 @@ check('credential loads and masks the secret', () => {
 	assert(cred.name === 'nostrPrivateKeyApi', 'credential name mismatch')
 	const key = cred.properties.find((p) => p.name === 'privateKey')
 	assert(key.typeOptions.password === true, 'private key must be a password field')
+	// n8n verification requires a declarative credential test.
+	assert(cred.test?.request?.method === 'GET', 'credential must declare a test request')
+	assert(/nip|nostr|damus|\$credentials/.test(cred.test.request.url), 'test URL should target a relay')
 	checkThemedIcon(cred.icon, join(DIST, 'credentials'), 'credential')
 })
 

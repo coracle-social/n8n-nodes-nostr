@@ -1,4 +1,4 @@
-import type { Icon, ICredentialType, INodeProperties } from 'n8n-workflow'
+import type { Icon, ICredentialTestRequest, ICredentialType, INodeProperties } from 'n8n-workflow'
 
 export class NostrPrivateKeyApi implements ICredentialType {
 	name = 'nostrPrivateKeyApi'
@@ -31,7 +31,17 @@ export class NostrPrivateKeyApi implements ICredentialType {
 		},
 	]
 
-	// Nostr has no HTTP endpoint to probe, so there is no ICredentialTestRequest here.
-	// Both nodes declare `testedBy: 'nostrKeyTest'`, which validates the key's format
-	// and derives its npub without touching the network.
+	// n8n's community-node verification requires a declarative credential `test`.
+	// A Nostr key has no HTTP endpoint to authenticate against, so this only checks
+	// that the first configured relay answers its NIP-11 info document — it does not
+	// prove the key itself is valid. The nodes additionally declare
+	// `testedBy: 'nostrKeyTest'`, which validates the key format and derives its npub
+	// locally with no network call.
+	test: ICredentialTestRequest = {
+		request: {
+			method: 'GET',
+			url: '={{ ($credentials.defaultRelays || "wss://relay.damus.io").split("\\n")[0].trim().replace("wss://", "https://").replace("ws://", "http://") }}',
+			headers: { Accept: 'application/nostr+json' },
+		},
+	}
 }

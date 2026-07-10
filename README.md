@@ -48,9 +48,12 @@ Restart n8n. See the n8n docs on
 | **Private Key** | Your Nostr secret key as an `nsec1…` (bech32) or 64-character hex string. Stored encrypted by n8n and never logged. Masked in the UI. |
 | **Default Relays** | Relays used whenever a node leaves its **Relays** field empty. One URL per line. |
 
-The credential test validates the key format and derives its `npub` locally — it
-makes **no network request**. A valid key reports the derived `npub`; an invalid
-one reports why.
+The credential's **Test** button issues one HTTP request to your first relay's
+NIP-11 info document to confirm the relay is reachable — n8n's community-node
+verification requires a declarative credential test, and a Nostr key has no
+endpoint of its own to probe. Key validation itself is local and network-free: the
+nodes declare a `testedBy` method that checks the key's format and derives its
+`npub` without any network call.
 
 The credential is optional for read-only work (getting events, decoding). It is
 required for anything that signs or encrypts: creating, signing, and NIP-44
