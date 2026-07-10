@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-nostr",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "description": "n8n community node for Nostr: publish, query, and subscribe to relays, with NIP-42 auth and NIP-44 encryption",
   "keywords": [
     "n8n-community-node-package",
