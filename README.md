@@ -388,36 +388,48 @@ It lives on GitHub for one reason: **npm provenance**.
 Provenance attests *repository and commit*, so `package.json`'s `repository.url`
 must match this repo **case-sensitively**.
 
-### One-time setup: trusted publishing
+### One-time setup: bootstrap, then trusted publishing
 
-Publishing uses npm **Trusted Publishing** (OIDC). No `NPM_TOKEN` secret exists,
-and none should: the alternative — a granular token with *Bypass 2FA* — is
-something npm itself warns against for CI.
+The destination is npm **Trusted Publishing** (OIDC): no long-lived credential
+anywhere, and provenance generated automatically. Getting there takes one
+bootstrap step, because `npm trust` requires that *"the package you're
+configuring must already exist on the npm registry"* — and a brand-new name does
+not.
 
-There is a bootstrap problem. `npm trust` states that *"the package you're
-configuring must already exist on the npm registry"*, so a brand-new name cannot
-be configured before its first publish. Break the cycle once:
+Note that provenance does **not** depend on how you authenticate. npm gates it on
+`GITHUB_ACTIONS` + `ACTIONS_ID_TOKEN_REQUEST_URL` (hence `id-token: write`), never
+on the registry credential. So the bootstrap release is fully attested too.
+
+**1. Publish the first release with a token.**
+
+Create a granular access token on npmjs.com with read+write, scoped to *All
+packages* — you cannot scope it to `n8n-nodes-nostr`, which does not exist yet.
+Add it to the repo as the secret `NPM_TOKEN`
+(Settings → Secrets and variables → Actions). Then cut a release (below). The
+workflow publishes it with provenance.
+
+**2. Hand publishing rights to the workflow.**
 
 ```bash
-# 1. Claim the name with one manual, unattested publish.
-npm login                                   # interactive, 2FA prompt
-npm publish --no-provenance                 # overrides publishConfig for this one release
-
-# 2. Now that the package exists, hand publishing rights to the workflow.
 npm trust github n8n-nodes-nostr \
   --repo coracle-social/n8n-nodes-nostr \
   --file publish.yml
 
-npm trust list n8n-nodes-nostr               # confirm it took
+npm trust list n8n-nodes-nostr    # confirm it took
 ```
 
-`npm trust` needs a recent npm (`npm install -g npm@latest`) and account-level
-2FA. From then on every release is published by the workflow over OIDC, with
-provenance, and no long-lived credential exists anywhere.
+`npm trust` needs npm >= 11.5.1 and account-level 2FA.
 
-The version published in step 1 has **no provenance**, by definition. That is
-fine — it exists only to claim the name. The first release you submit to n8n for
-verification must be a later version, published by the workflow.
+**3. Delete the token.**
+
+- Remove the `env: NODE_AUTH_TOKEN` block from `.github/workflows/publish.yml`.
+- Delete the `NPM_TOKEN` repo secret.
+- Revoke the token on npmjs.com.
+
+Every subsequent release authenticates over OIDC. Nothing long-lived remains.
+
+Do not tick **Bypass 2FA** on a permanent CI token — npm warns against it, and
+after step 3 you will not need a token at all.
 
 ### Cutting a release
 
@@ -434,9 +446,10 @@ Cutting a GitHub Release, or dispatching the workflow by hand, does the same.
 Two things the workflow has to get right, both easy to miss:
 
 - **npm must be upgraded in CI.** `node-version: 22` bundles npm 10.x, and
-  trusted publishing needs **npm >= 11.5.1**. Without the upgrade step, `npm
-  publish` falls back to token auth and dies with `ENEEDAUTH`.
-- **`id-token: write`** must be granted, or the OIDC exchange never happens.
+  trusted publishing needs **npm >= 11.5.1**. The upgrade is pinned to `npm@^11.5.1`
+  rather than `@latest`, because npm 12 requires node `^22.22.2 || ^24.15.0 || >=26`
+  and `@latest` would silently couple this step to whatever node the runner resolves.
+- **`id-token: write`** must be granted, or provenance generation fails `EUSAGE`.
 
 Running `npm publish` from a laptop **fails on purpose**:
 
@@ -445,8 +458,7 @@ npm error EUSAGE Automatic provenance generation not supported for provider: <na
 ```
 
 That guard is the point. It makes it impossible to accidentally ship an
-unattested build that n8n would then refuse to verify. (The bootstrap publish
-above sidesteps it explicitly with `--no-provenance`.)
+unattested build that n8n would then refuse to verify.
 
 ### Verifying a release
 

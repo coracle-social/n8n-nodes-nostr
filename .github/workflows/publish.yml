@@ -66,11 +66,23 @@ jobs:
       - run: node scripts/verify-dist.mjs
       - run: node scripts/scan.mjs
 
-      # Authentication is npm Trusted Publishing (OIDC), configured once with
-      # `npm trust github` — see README. There is deliberately no NPM_TOKEN: a
-      # granular token would need "Bypass 2FA", which npm itself warns against
-      # for CI. The OIDC exchange needs `id-token: write` above.
-      #
       # publishConfig in package.json supplies --provenance --access public.
+      #
+      # Provenance does NOT depend on how we authenticate: npm gates it on
+      # GITHUB_ACTIONS + ACTIONS_ID_TOKEN_REQUEST_URL (hence `id-token: write`),
+      # never on the registry credential. So this token publish is fully attested.
+      #
+      # TEMPORARY. `npm trust` cannot configure trusted publishing for a package
+      # that does not exist yet, so the first release authenticates with
+      # NPM_TOKEN. Once it is on the registry:
+      #
+      #   npm trust github n8n-nodes-nostr \
+      #     --repo coracle-social/n8n-nodes-nostr --file publish.yml
+      #
+      # then delete this `env:` block, delete the NPM_TOKEN repo secret, and
+      # revoke the token on npmjs.com. Publishing continues over OIDC with no
+      # long-lived credential anywhere.
       - name: Publish to npm with provenance
         run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
