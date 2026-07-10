@@ -1,8 +1,8 @@
 import { NodeOperationError } from 'n8n-workflow'
 import type { INodeProperties } from 'n8n-workflow'
 
-import { nip19 } from '../../../../nostr'
-import { bytesToHex } from '../../../../nostr'
+import { bytesToHex, nip19 } from '../../../../nostr'
+import { splitList, toItem } from '../../../shared'
 import type { OperationFn, ResourceModule } from '../types'
 
 const showFor = (entity: string[]) => ({
@@ -18,8 +18,18 @@ export const description: INodeProperties[] = [
 		displayOptions: { show: { resource: ['utility'] } },
 		default: 'decode',
 		options: [
-			{ name: 'Decode', value: 'decode', description: 'Decode a NIP-19 entity', action: 'Decode a NIP-19 entity' },
-			{ name: 'Encode', value: 'encode', description: 'Encode a NIP-19 entity', action: 'Encode a NIP-19 entity' },
+			{
+				name: 'Decode',
+				value: 'decode',
+				description: 'Decode a NIP-19 entity',
+				action: 'Decode a NIP-19 entity',
+			},
+			{
+				name: 'Encode',
+				value: 'encode',
+				description: 'Encode a NIP-19 entity',
+				action: 'Encode a NIP-19 entity',
+			},
 		],
 	},
 	{
@@ -98,12 +108,6 @@ export const description: INodeProperties[] = [
 	},
 ]
 
-const splitRelays = (raw: string): string[] =>
-	(raw ?? '')
-		.split(/[\s,]+/)
-		.map((s) => s.trim())
-		.filter(Boolean)
-
 const decode: OperationFn = async (c) => {
 	const code = (c.ctx.getNodeParameter('code', c.itemIndex, '') as string).trim()
 
@@ -113,18 +117,22 @@ const decode: OperationFn = async (c) => {
 			decoded.type === 'nsec'
 				? bytesToHex(decoded.data as Uint8Array)
 				: (decoded.data as unknown as Record<string, unknown> | string)
-		return [{ json: { type: decoded.type, data }, pairedItem: { item: c.itemIndex } }]
+		return [toItem({ type: decoded.type, data }, c.itemIndex)]
 	} catch (err) {
-		throw new NodeOperationError(c.ctx.getNode(), `Could not decode ${JSON.stringify(code)}: ${(err as Error).message}`, {
-			itemIndex: c.itemIndex,
-		})
+		throw new NodeOperationError(
+			c.ctx.getNode(),
+			`Could not decode ${JSON.stringify(code)}: ${(err as Error).message}`,
+			{
+				itemIndex: c.itemIndex,
+			},
+		)
 	}
 }
 
 const encode: OperationFn = async (c) => {
 	const entity = c.ctx.getNodeParameter('entity', c.itemIndex, 'npub') as string
 	const str = (name: string) => (c.ctx.getNodeParameter(name, c.itemIndex, '') as string).trim()
-	const relays = splitRelays(c.ctx.getNodeParameter('relayHints', c.itemIndex, '') as string)
+	const relays = splitList(c.ctx.getNodeParameter('relayHints', c.itemIndex, '') as string)
 
 	try {
 		let encoded: string
@@ -157,11 +165,15 @@ const encode: OperationFn = async (c) => {
 			default:
 				throw new Error(`unknown entity ${entity}`)
 		}
-		return [{ json: { encoded }, pairedItem: { item: c.itemIndex } }]
+		return [toItem({ encoded }, c.itemIndex)]
 	} catch (err) {
-		throw new NodeOperationError(c.ctx.getNode(), `Could not encode ${entity}: ${(err as Error).message}`, {
-			itemIndex: c.itemIndex,
-		})
+		throw new NodeOperationError(
+			c.ctx.getNode(),
+			`Could not encode ${entity}: ${(err as Error).message}`,
+			{
+				itemIndex: c.itemIndex,
+			},
+		)
 	}
 }
 

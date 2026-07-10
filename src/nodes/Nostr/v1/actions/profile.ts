@@ -1,11 +1,20 @@
 import { NodeOperationError } from 'n8n-workflow'
 import type { IDataObject, INodeExecutionData, INodeProperties } from 'n8n-workflow'
 
-import { nip19, normalizePubkey } from '../../../../nostr'
+import { getPublicKey, nip19, normalizePubkey, pickNewest } from '../../../../nostr'
 import type { Event } from '../../../../nostr'
 import { query as queryRelays } from '../../../../relay'
-import { relaysField, resolveRelays, resolveSigner, resolveSecretKey } from '../../../shared'
-import { getPublicKey } from '../../../../nostr'
+import {
+	authenticateOption,
+	normalizeOrThrow,
+	relaysField,
+	resolveRelays,
+	resolveSecretKey,
+	resolveSigner,
+	splitList,
+	timeoutMsOption,
+	toItem,
+} from '../../../shared'
 import type { OperationContext, OperationFn, ResourceModule } from '../types'
 
 export const description: INodeProperties[] = [
@@ -17,7 +26,12 @@ export const description: INodeProperties[] = [
 		displayOptions: { show: { resource: ['profile'] } },
 		default: 'get',
 		options: [
-			{ name: 'Get', value: 'get', description: 'Fetch profile metadata (kind 0)', action: 'Get a profile' },
+			{
+				name: 'Get',
+				value: 'get',
+				description: 'Fetch profile metadata (kind 0)',
+				action: 'Get a profile',
+			},
 			{
 				name: 'Get Relays',
 				value: 'getRelays',
@@ -33,7 +47,8 @@ export const description: INodeProperties[] = [
 		typeOptions: { rows: 2 },
 		displayOptions: { show: { resource: ['profile'] } },
 		default: '',
-		description: 'Public keys as npub or hex, one per line or comma-separated. Leave empty to use your own key.',
+		description:
+			'Public keys as npub or hex, one per line or comma-separated. Leave empty to use your own key.',
 	},
 	{ ...relaysField, displayOptions: { show: { resource: ['profile'] } } },
 	{
@@ -43,22 +58,7 @@ export const description: INodeProperties[] = [
 		placeholder: 'Add option',
 		displayOptions: { show: { resource: ['profile'] } },
 		default: {},
-		options: [
-			{
-				displayName: 'Authenticate',
-				name: 'authenticate',
-				type: 'boolean',
-				default: true,
-				description: 'Whether to answer a relay NIP-42 authentication challenge',
-			},
-			{
-				displayName: 'Timeout (Ms)',
-				name: 'timeoutMs',
-				type: 'number',
-				default: 6000,
-				description: 'Wall-clock deadline for the lookup',
-			},
-		],
+		options: [authenticateOption, timeoutMsOption(6000, 'Wall-clock deadline for the lookup')],
 	},
 ]
 
@@ -68,11 +68,7 @@ interface ProfileOpts {
 }
 
 async function resolvePubkeys(c: OperationContext): Promise<string[]> {
-	const raw = c.ctx.getNodeParameter('pubkeys', c.itemIndex, '') as string
-	const tokens = raw
-		.split(/[\s,]+/)
-		.map((s) => s.trim())
-		.filter(Boolean)
+	const tokens = splitList(c.ctx.getNodeParameter('pubkeys', c.itemIndex, '') as string)
 
 	if (tokens.length === 0) {
 		const secretKey = await resolveSecretKey(c.ctx)
@@ -86,32 +82,14 @@ async function resolvePubkeys(c: OperationContext): Promise<string[]> {
 		return [getPublicKey(secretKey)]
 	}
 
-	return tokens.map((token) => {
-		try {
-			return normalizePubkey(token)
-		} catch (err) {
-			throw new NodeOperationError(c.ctx.getNode(), (err as Error).message, { itemIndex: c.itemIndex })
-		}
-	})
+	return tokens.map((token) => normalizeOrThrow(c.ctx, normalizePubkey, token, c.itemIndex))
 }
 
-/** Newest wins for replaceable kinds; ties break on the lower id, as NIP-01 says. */
-function newestPerPubkey(events: Event[]): Map<string, Event> {
-	const byPubkey = new Map<string, Event>()
-	for (const event of events) {
-		const held = byPubkey.get(event.pubkey)
-		if (
-			!held ||
-			event.created_at > held.created_at ||
-			(event.created_at === held.created_at && event.id < held.id)
-		) {
-			byPubkey.set(event.pubkey, event)
-		}
-	}
-	return byPubkey
-}
-
-async function fetchKind(c: OperationContext, kind: number, pubkeys: string[]): Promise<Map<string, Event>> {
+async function fetchKind(
+	c: OperationContext,
+	kind: number,
+	pubkeys: string[],
+): Promise<Map<string, Event>> {
 	const opts = c.ctx.getNodeParameter('options', c.itemIndex, {}) as ProfileOpts
 	const relays = await resolveRelays(c.ctx, c.itemIndex)
 	const signer = await resolveSigner(c.ctx)
@@ -124,7 +102,11 @@ async function fetchKind(c: OperationContext, kind: number, pubkeys: string[]): 
 		signer,
 	})
 
-	return newestPerPubkey(events)
+	// Both profile kinds are replaceable, so `pickNewest` collapses each author to
+	// one event. Off-kind events are dropped first: a relay may serve more than it
+	// was asked for, and that would leave two events competing for one pubkey.
+	const newest = pickNewest(events.filter((event) => event.kind === kind))
+	return new Map(newest.map((event) => [event.pubkey, event]))
 }
 
 const get: OperationFn = async (c) => {
@@ -134,9 +116,7 @@ const get: OperationFn = async (c) => {
 	return pubkeys.map((pubkey): INodeExecutionData => {
 		const event = found.get(pubkey)
 		const npub = nip19.npubEncode(pubkey)
-		if (!event) {
-			return { json: { pubkey, npub, found: false }, pairedItem: { item: c.itemIndex } }
-		}
+		if (!event) return toItem({ pubkey, npub, found: false }, c.itemIndex)
 
 		let metadata: IDataObject = {}
 		try {
@@ -145,8 +125,8 @@ const get: OperationFn = async (c) => {
 			// A malformed kind 0 is common in the wild; surface the raw event anyway.
 		}
 
-		return {
-			json: {
+		return toItem(
+			{
 				pubkey,
 				npub,
 				found: true,
@@ -159,8 +139,8 @@ const get: OperationFn = async (c) => {
 				created_at: event.created_at,
 				raw: event as unknown as IDataObject,
 			},
-			pairedItem: { item: c.itemIndex },
-		}
+			c.itemIndex,
+		)
 	})
 }
 
@@ -172,7 +152,7 @@ const getRelays: OperationFn = async (c) => {
 		const event = found.get(pubkey)
 		const npub = nip19.npubEncode(pubkey)
 		if (!event) {
-			return { json: { pubkey, npub, found: false, read: [], write: [], relays: [] }, pairedItem: { item: c.itemIndex } }
+			return toItem({ pubkey, npub, found: false, read: [], write: [], relays: [] }, c.itemIndex)
 		}
 
 		const read: string[] = []
@@ -188,10 +168,10 @@ const getRelays: OperationFn = async (c) => {
 			if (!marker || marker === 'write') write.push(url)
 		}
 
-		return {
-			json: { pubkey, npub, found: true, read, write, relays: all, created_at: event.created_at },
-			pairedItem: { item: c.itemIndex },
-		}
+		return toItem(
+			{ pubkey, npub, found: true, read, write, relays: all, created_at: event.created_at },
+			c.itemIndex,
+		)
 	})
 }
 

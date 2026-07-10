@@ -7,7 +7,8 @@ export const relaysField: INodeProperties = {
 	typeOptions: { rows: 3 },
 	default: '',
 	placeholder: 'wss://relay.damus.io\nwss://nos.lol',
-	description: 'One relay URL per line. Leave empty to use the default relays from your credential.',
+	description:
+		'One relay URL per line. Leave empty to use the default relays from your credential.',
 }
 
 export const filterModeField: INodeProperties = {
@@ -18,9 +19,45 @@ export const filterModeField: INodeProperties = {
 	default: 'fields',
 	options: [
 		{ name: 'Fields', value: 'fields', description: 'Build the filter from individual fields' },
-		{ name: 'Raw Filter JSON', value: 'rawFilter', description: 'Supply a raw NIP-01 filter object' },
+		{
+			name: 'Raw Filter JSON',
+			value: 'rawFilter',
+			description: 'Supply a raw NIP-01 filter object',
+		},
 	],
 	description: 'How to build the Nostr filter',
+}
+
+/**
+ * Entries for an Options collection. Every node that reaches a relay offers the
+ * same NIP-42 toggle and deadline, and every node that builds an event offers
+ * the same timestamp override.
+ */
+export const authenticateOption: INodeProperties = {
+	displayName: 'Authenticate',
+	name: 'authenticate',
+	type: 'boolean',
+	default: true,
+	description: 'Whether to answer a relay NIP-42 authentication challenge',
+}
+
+export const createdAtOption: INodeProperties = {
+	displayName: 'Created At',
+	name: 'createdAt',
+	type: 'dateTime',
+	default: '',
+	description: 'Event timestamp. Defaults to now.',
+}
+
+/** The deadline differs per operation, so the caller supplies both it and its wording. */
+export function timeoutMsOption(defaultMs: number, description: string): INodeProperties {
+	return {
+		displayName: 'Timeout (Ms)',
+		name: 'timeoutMs',
+		type: 'number',
+		default: defaultMs,
+		description,
+	}
 }
 
 export const tagFiltersField: INodeProperties = {

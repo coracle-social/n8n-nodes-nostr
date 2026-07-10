@@ -2,13 +2,12 @@ import { NodeOperationError } from 'n8n-workflow'
 
 import { optionalCredentials, paramReader } from './context'
 import type { NodeFns } from './context'
+import { splitList } from './params'
 
-/** Splits a textarea of relay URLs on newlines, commas, or whitespace. */
+/** Keeps the websocket URLs from a relay textarea, deduplicated and de-slashed. */
 export function parseRelayList(raw: string): string[] {
 	const seen = new Set<string>()
-	for (const token of (raw ?? '').split(/[\s,]+/)) {
-		const url = token.trim()
-		if (!url) continue
+	for (const url of splitList(raw)) {
 		if (!/^wss?:\/\//i.test(url)) continue
 		seen.add(url.replace(/\/+$/, ''))
 	}

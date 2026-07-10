@@ -1,10 +1,25 @@
-import type { IDataObject, INodeType, INodeTypeDescription, ITriggerFunctions, ITriggerResponse } from 'n8n-workflow'
+import type {
+	IDataObject,
+	INodeType,
+	INodeTypeDescription,
+	ITriggerFunctions,
+	ITriggerResponse,
+} from 'n8n-workflow'
 
 import { nowSec } from '../../nostr'
 import type { Event, Filter } from '../../nostr'
 import { RelayPool, query, subscribe } from '../../relay'
 import type { SubscribeHandle } from '../../relay'
-import { buildFilter, filterModeField, relaysField, resolveRelays, resolveSigner, tagFiltersField } from '../shared'
+import {
+	authenticateOption,
+	buildFilter,
+	eventToJson,
+	filterModeField,
+	relaysField,
+	resolveRelays,
+	resolveSigner,
+	tagFiltersField,
+} from '../shared'
 
 interface TriggerOptions {
 	authenticate?: boolean
@@ -80,13 +95,7 @@ export class NostrTrigger implements INodeType {
 				placeholder: 'Add option',
 				default: {},
 				options: [
-					{
-						displayName: 'Authenticate',
-						name: 'authenticate',
-						type: 'boolean',
-						default: true,
-						description: 'Whether to answer a relay NIP-42 authentication challenge',
-					},
+					authenticateOption,
 					{
 						displayName: 'Emit Envelope',
 						name: 'emitEnvelope',
@@ -158,15 +167,14 @@ export class NostrTrigger implements INodeType {
 				const evicted = seenOrder.shift()
 				if (evicted) seen.delete(evicted)
 			}
-			if (event.created_at > (staticData.lastCreatedAt ?? 0)) staticData.lastCreatedAt = event.created_at
+			if (event.created_at > (staticData.lastCreatedAt ?? 0))
+				staticData.lastCreatedAt = event.created_at
 			staticData.seenIds = seenOrder
 			return true
 		}
 
 		const emit = (event: Event, relay: string): void => {
-			const json: IDataObject = emitEnvelope
-				? { event: event as unknown as IDataObject, relay }
-				: { ...(event as unknown as IDataObject), relay }
+			const json = eventToJson(event, { envelope: emitEnvelope, relay })
 			// The 4th argument is n8n's native dedup key. Our own `seen` set is still
 			// the authority: the same id arrives from every relay carrying it.
 			this.emit([this.helpers.returnJsonArray([json])], undefined, undefined, event.id)

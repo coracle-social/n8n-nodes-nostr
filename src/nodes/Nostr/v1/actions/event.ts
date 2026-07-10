@@ -6,14 +6,20 @@ import type { Event } from '../../../../nostr'
 import { publish as publishToRelays, query as queryRelays } from '../../../../relay'
 import type { PerRelayResult } from '../../../../relay'
 import {
+	authenticateOption,
 	buildFilter,
+	createdAtOption,
 	eventToItem,
 	filterModeField,
+	parseJsonParam,
 	relaysField,
 	requireSigner,
 	resolveRelays,
 	resolveSigner,
 	tagFiltersField,
+	timeoutMsOption,
+	toItem,
+	toUnixSeconds,
 } from '../../../shared'
 import type { OperationContext, OperationFn, ResourceModule } from '../types'
 
@@ -28,9 +34,24 @@ export const description: INodeProperties[] = [
 		displayOptions: { show: { resource: ['event'] } },
 		default: 'publish',
 		options: [
-			{ name: 'Publish', value: 'publish', description: 'Sign and send an event to relays', action: 'Publish an event' },
-			{ name: 'Query', value: 'query', description: 'Fetch events matching a filter', action: 'Query events' },
-			{ name: 'Sign', value: 'sign', description: 'Sign an event without publishing it', action: 'Sign an event' },
+			{
+				name: 'Publish',
+				value: 'publish',
+				description: 'Sign and send an event to relays',
+				action: 'Publish an event',
+			},
+			{
+				name: 'Query',
+				value: 'query',
+				description: 'Fetch events matching a filter',
+				action: 'Query events',
+			},
+			{
+				name: 'Sign',
+				value: 'sign',
+				description: 'Sign an event without publishing it',
+				action: 'Sign an event',
+			},
 		],
 	},
 
@@ -51,7 +72,9 @@ export const description: INodeProperties[] = [
 		displayName: 'Kind',
 		name: 'kind',
 		type: 'number',
-		displayOptions: { show: { resource: ['event'], operation: ['publish', 'sign'], inputMode: ['fields'] } },
+		displayOptions: {
+			show: { resource: ['event'], operation: ['publish', 'sign'], inputMode: ['fields'] },
+		},
 		default: 1,
 		description: 'The event kind. 1 is a short text note.',
 	},
@@ -60,7 +83,9 @@ export const description: INodeProperties[] = [
 		name: 'content',
 		type: 'string',
 		typeOptions: { rows: 5 },
-		displayOptions: { show: { resource: ['event'], operation: ['publish', 'sign'], inputMode: ['fields'] } },
+		displayOptions: {
+			show: { resource: ['event'], operation: ['publish', 'sign'], inputMode: ['fields'] },
+		},
 		default: '',
 		description: 'The event content',
 	},
@@ -68,7 +93,9 @@ export const description: INodeProperties[] = [
 		displayName: 'Tags',
 		name: 'tags',
 		type: 'json',
-		displayOptions: { show: { resource: ['event'], operation: ['publish', 'sign'], inputMode: ['fields'] } },
+		displayOptions: {
+			show: { resource: ['event'], operation: ['publish', 'sign'], inputMode: ['fields'] },
+		},
 		default: '[]',
 		description: 'Event tags, as an array of string arrays. For example [["t","nostr"]].',
 	},
@@ -76,9 +103,12 @@ export const description: INodeProperties[] = [
 		displayName: 'Event',
 		name: 'event',
 		type: 'json',
-		displayOptions: { show: { resource: ['event'], operation: ['publish', 'sign'], inputMode: ['rawEvent'] } },
+		displayOptions: {
+			show: { resource: ['event'], operation: ['publish', 'sign'], inputMode: ['rawEvent'] },
+		},
 		default: '{}',
-		description: 'A complete event object. If it already has an ID and signature it is published as-is.',
+		description:
+			'A complete event object. If it already has an ID and signature it is published as-is.',
 	},
 
 	{ ...filterModeField, displayOptions: showFor(['query']) },
@@ -141,12 +171,17 @@ export const description: INodeProperties[] = [
 		default: 50,
 		description: 'Max number of results to return',
 	},
-	{ ...tagFiltersField, displayOptions: { show: { resource: ['event'], operation: ['query'], filterMode: ['fields'] } } },
+	{
+		...tagFiltersField,
+		displayOptions: { show: { resource: ['event'], operation: ['query'], filterMode: ['fields'] } },
+	},
 	{
 		displayName: 'Filter',
 		name: 'filter',
 		type: 'json',
-		displayOptions: { show: { resource: ['event'], operation: ['query'], filterMode: ['rawFilter'] } },
+		displayOptions: {
+			show: { resource: ['event'], operation: ['query'], filterMode: ['rawFilter'] },
+		},
 		default: '{"kinds":[1],"limit":20}',
 		description: 'A raw NIP-01 filter object, or an array of them',
 	},
@@ -161,20 +196,8 @@ export const description: INodeProperties[] = [
 		displayOptions: showFor(['publish']),
 		default: {},
 		options: [
-			{
-				displayName: 'Authenticate',
-				name: 'authenticate',
-				type: 'boolean',
-				default: true,
-				description: 'Whether to answer a relay NIP-42 authentication challenge',
-			},
-			{
-				displayName: 'Created At',
-				name: 'createdAt',
-				type: 'dateTime',
-				default: '',
-				description: 'Event timestamp. Defaults to now.',
-			},
+			authenticateOption,
+			createdAtOption,
 			{
 				displayName: 'Split Results Into Items',
 				name: 'splitResultsIntoItems',
@@ -182,13 +205,7 @@ export const description: INodeProperties[] = [
 				default: false,
 				description: 'Whether to emit one item per relay instead of one item per event',
 			},
-			{
-				displayName: 'Timeout (Ms)',
-				name: 'timeoutMs',
-				type: 'number',
-				default: 10000,
-				description: 'How long to wait for each relay to acknowledge the event',
-			},
+			timeoutMsOption(10000, 'How long to wait for each relay to acknowledge the event'),
 		],
 	},
 	{
@@ -206,13 +223,7 @@ export const description: INodeProperties[] = [
 				default: true,
 				description: 'Whether to include the nevent encoding of the signed event',
 			},
-			{
-				displayName: 'Created At',
-				name: 'createdAt',
-				type: 'dateTime',
-				default: '',
-				description: 'Event timestamp. Defaults to now.',
-			},
+			createdAtOption,
 		],
 	},
 	{
@@ -223,13 +234,7 @@ export const description: INodeProperties[] = [
 		displayOptions: showFor(['query']),
 		default: {},
 		options: [
-			{
-				displayName: 'Authenticate',
-				name: 'authenticate',
-				type: 'boolean',
-				default: true,
-				description: 'Whether to answer a relay NIP-42 authentication challenge',
-			},
+			authenticateOption,
 			{
 				displayName: 'Close On EOSE',
 				name: 'closeOnEose',
@@ -262,13 +267,7 @@ export const description: INodeProperties[] = [
 				],
 				description: 'Whether to emit one item per event or a single item holding them all',
 			},
-			{
-				displayName: 'Timeout (Ms)',
-				name: 'timeoutMs',
-				type: 'number',
-				default: 8000,
-				description: 'Wall-clock deadline. The query always returns by this time.',
-			},
+			timeoutMsOption(8000, 'Wall-clock deadline. The query always returns by this time.'),
 		],
 	},
 ]
@@ -289,28 +288,18 @@ interface QueryOpts {
 	timeoutMs?: number
 }
 
-function parseJsonParam(c: OperationContext, name: string, fallback: unknown): unknown {
-	const raw = c.ctx.getNodeParameter(name, c.itemIndex, fallback) as unknown
-	if (typeof raw !== 'string') return raw
-	try {
-		return JSON.parse(raw)
-	} catch {
-		throw new NodeOperationError(c.ctx.getNode(), `${name} is not valid JSON.`, { itemIndex: c.itemIndex })
-	}
-}
-
-function createdAtFrom(value: string | undefined): number {
-	if (!value) return nowSec()
-	const ms = Date.parse(value)
-	return Number.isNaN(ms) ? nowSec() : Math.floor(ms / 1000)
-}
+/** An absent or unparseable timestamp means "now", not an error. */
+const createdAtFrom = (value: string | undefined): number => toUnixSeconds(value) ?? nowSec()
 
 /** Builds the event to publish or sign. Returns it already signed. */
-async function buildSignedEvent(c: OperationContext, createdAt: string | undefined): Promise<Event> {
+async function buildSignedEvent(
+	c: OperationContext,
+	createdAt: string | undefined,
+): Promise<Event> {
 	const inputMode = c.ctx.getNodeParameter('inputMode', c.itemIndex, 'fields') as string
 
 	if (inputMode === 'rawEvent') {
-		const raw = parseJsonParam(c, 'event', {}) as Partial<Event>
+		const raw = parseJsonParam(c.ctx, 'event', {}, c.itemIndex) as Partial<Event>
 		if (raw.id && raw.sig) {
 			// Already signed elsewhere: publish verbatim, but never relay a forgery.
 			if (!verifyEvent(raw as Event)) {
@@ -331,7 +320,7 @@ async function buildSignedEvent(c: OperationContext, createdAt: string | undefin
 		})
 	}
 
-	const tags = parseJsonParam(c, 'tags', []) as string[][]
+	const tags = parseJsonParam(c.ctx, 'tags', [], c.itemIndex) as string[][]
 	if (!Array.isArray(tags) || tags.some((t) => !Array.isArray(t))) {
 		throw new NodeOperationError(c.ctx.getNode(), 'Tags must be an array of string arrays.', {
 			itemIndex: c.itemIndex,
@@ -363,15 +352,12 @@ const publish: OperationFn = async (c) => {
 	const rejected = results.filter((r) => !r.ok).map((r) => r.relay)
 
 	if (opts.splitResultsIntoItems) {
-		return results.map((result) => ({
-			json: { ...result, eventId: event.id },
-			pairedItem: { item: c.itemIndex },
-		}))
+		return results.map((result) => toItem({ ...result, eventId: event.id }, c.itemIndex))
 	}
 
 	return [
-		{
-			json: {
+		toItem(
+			{
 				event: event as unknown as IDataObject,
 				results: results as unknown as IDataObject[],
 				accepted,
@@ -379,13 +365,16 @@ const publish: OperationFn = async (c) => {
 				allAccepted: rejected.length === 0,
 				anyAccepted: accepted.length > 0,
 			},
-			pairedItem: { item: c.itemIndex },
-		},
+			c.itemIndex,
+		),
 	]
 }
 
 const sign: OperationFn = async (c) => {
-	const opts = c.ctx.getNodeParameter('options', c.itemIndex, {}) as { createdAt?: string; attachNip19?: boolean }
+	const opts = c.ctx.getNodeParameter('options', c.itemIndex, {}) as {
+		createdAt?: string
+		attachNip19?: boolean
+	}
 	const event = await buildSignedEvent(c, opts.createdAt)
 
 	const json: IDataObject = {
@@ -397,7 +386,7 @@ const sign: OperationFn = async (c) => {
 		json.nevent = nip19.neventEncode({ id: event.id, author: event.pubkey, kind: event.kind })
 	}
 
-	return [{ json, pairedItem: { item: c.itemIndex } }]
+	return [toItem(json, c.itemIndex)]
 }
 
 const query: OperationFn = async (c): Promise<INodeExecutionData[]> => {
@@ -420,14 +409,14 @@ const query: OperationFn = async (c): Promise<INodeExecutionData[]> => {
 
 	if ((opts.outputMode ?? 'individualEvents') === 'singleArray') {
 		return [
-			{
-				json: {
+			toItem(
+				{
 					events: events as unknown as IDataObject[],
 					count: events.length,
 					relaysQueried: relays,
 				},
-				pairedItem: { item: c.itemIndex },
-			},
+				c.itemIndex,
+			),
 		]
 	}
 

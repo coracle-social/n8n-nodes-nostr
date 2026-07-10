@@ -26,7 +26,7 @@ export class NostrPrivateKeyApi implements ICredentialType {
 			name: 'defaultRelays',
 			type: 'string',
 			typeOptions: { rows: 4 },
-			default: 'wss://relay.damus.io\nwss://nos.lol\nwss://relay.primal.net\nwss://relay.nostr.band',
+			default: 'wss://relay.damus.io\nwss://nos.lol\nwss://relay.primal.net',
 			description: 'Relays to use when a node leaves its Relays field empty. One URL per line.',
 		},
 	]

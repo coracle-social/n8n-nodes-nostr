@@ -5,6 +5,7 @@ import { makeSecretKeySigner } from '../../relay'
 import type { Signer } from '../../relay'
 import { optionalCredentials } from './context'
 import type { NodeFns } from './context'
+import { normalizeOrThrow } from './params'
 
 /** The raw secret key, or undefined when no credential is attached. */
 export async function resolveSecretKey(fns: NodeFns): Promise<Uint8Array | undefined> {
@@ -12,11 +13,7 @@ export async function resolveSecretKey(fns: NodeFns): Promise<Uint8Array | undef
 	const privateKey = credentials?.privateKey as string | undefined
 	if (!privateKey) return undefined
 
-	try {
-		return normalizeSecretKey(privateKey)
-	} catch (err) {
-		throw new NodeOperationError(fns.getNode(), (err as Error).message)
-	}
+	return normalizeOrThrow(fns, normalizeSecretKey, privateKey)
 }
 
 /** A signer, or undefined when no credential is attached. */

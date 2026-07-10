@@ -4,6 +4,7 @@ import { normalizeId, normalizePubkey } from '../../nostr'
 import type { Filter } from '../../nostr'
 import { paramReader } from './context'
 import type { NodeFns } from './context'
+import { normalizeOrThrow, parseJsonParam, splitList, toUnixSeconds } from './params'
 
 export interface BuildFilterOptions {
 	/** A trigger's live tail has no meaningful `limit` or `until`. */
@@ -15,27 +16,16 @@ interface TagFilterEntry {
 	values: string
 }
 
-const splitList = (raw: string): string[] =>
-	(raw ?? '')
-		.split(/[\s,]+/)
-		.map((s) => s.trim())
-		.filter(Boolean)
-
-/** n8n dateTime parameters arrive as ISO strings; Nostr wants unix seconds. */
-function toUnixSeconds(value: unknown): number | undefined {
-	if (value === undefined || value === null || value === '') return undefined
-	const ms = typeof value === 'number' ? value : Date.parse(String(value))
-	if (Number.isNaN(ms)) return undefined
-	return Math.floor(ms / 1000)
-}
-
-export function buildFilter(fns: NodeFns, itemIndex: number | undefined, opts: BuildFilterOptions): Filter[] {
+export function buildFilter(
+	fns: NodeFns,
+	itemIndex: number | undefined,
+	opts: BuildFilterOptions,
+): Filter[] {
 	const param = paramReader(fns, itemIndex)
 	const mode = param<string>('filterMode', 'fields')
 
 	if (mode === 'rawFilter') {
-		const raw = param<unknown>('filter', {})
-		const parsed = typeof raw === 'string' ? safeParse(fns, raw) : raw
+		const parsed = parseJsonParam(fns, 'filter', {}, itemIndex)
 		const filters: Filter[] = Array.isArray(parsed) ? (parsed as Filter[]) : [parsed as Filter]
 		if (!opts.allowLimitUntil) {
 			for (const filter of filters) {
@@ -51,16 +41,26 @@ export function buildFilter(fns: NodeFns, itemIndex: number | undefined, opts: B
 	const kinds = splitList(param<string>('kinds', '')).map((k) => {
 		const n = Number(k)
 		if (!Number.isInteger(n) || n < 0) {
-			throw new NodeOperationError(fns.getNode(), `Invalid kind ${JSON.stringify(k)}: expected an integer.`)
+			throw new NodeOperationError(
+				fns.getNode(),
+				`Invalid kind ${JSON.stringify(k)}: expected an integer.`,
+				{
+					itemIndex,
+				},
+			)
 		}
 		return n
 	})
 	if (kinds.length) filter.kinds = kinds
 
-	const authors = splitList(param<string>('authors', '')).map((a) => normalize(fns, normalizePubkey, a))
+	const authors = splitList(param<string>('authors', '')).map((a) =>
+		normalizeOrThrow(fns, normalizePubkey, a, itemIndex),
+	)
 	if (authors.length) filter.authors = authors
 
-	const ids = splitList(param<string>('ids', '')).map((i) => normalize(fns, normalizeId, i))
+	const ids = splitList(param<string>('ids', '')).map((i) =>
+		normalizeOrThrow(fns, normalizeId, i, itemIndex),
+	)
 	if (ids.length) filter.ids = ids
 
 	const search = param<string>('search', '').trim()
@@ -84,6 +84,7 @@ export function buildFilter(fns: NodeFns, itemIndex: number | undefined, opts: B
 			throw new NodeOperationError(
 				fns.getNode(),
 				`Invalid tag ${JSON.stringify(letter)}: a tag filter must be a single letter, such as e, p or t.`,
+				{ itemIndex },
 			)
 		}
 		const values = splitList(entry.values ?? '')
@@ -91,20 +92,4 @@ export function buildFilter(fns: NodeFns, itemIndex: number | undefined, opts: B
 	}
 
 	return [filter]
-}
-
-function normalize(fns: NodeFns, fn: (value: string) => string, value: string): string {
-	try {
-		return fn(value)
-	} catch (err) {
-		throw new NodeOperationError(fns.getNode(), (err as Error).message)
-	}
-}
-
-function safeParse(fns: NodeFns, raw: string): unknown {
-	try {
-		return JSON.parse(raw)
-	} catch {
-		throw new NodeOperationError(fns.getNode(), 'Filter is not valid JSON.')
-	}
 }

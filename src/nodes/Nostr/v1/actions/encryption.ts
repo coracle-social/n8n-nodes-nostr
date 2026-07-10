@@ -2,7 +2,7 @@ import { NodeOperationError } from 'n8n-workflow'
 import type { INodeProperties } from 'n8n-workflow'
 
 import { nip44, normalizePubkey } from '../../../../nostr'
-import { requireSecretKey } from '../../../shared'
+import { normalizeOrThrow, requireSecretKey, toItem } from '../../../shared'
 import type { OperationContext, OperationFn, ResourceModule } from '../types'
 
 export const description: INodeProperties[] = [
@@ -14,8 +14,18 @@ export const description: INodeProperties[] = [
 		displayOptions: { show: { resource: ['encryption'] } },
 		default: 'encrypt',
 		options: [
-			{ name: 'Encrypt', value: 'encrypt', description: 'Encrypt a message with NIP-44', action: 'Encrypt a message' },
-			{ name: 'Decrypt', value: 'decrypt', description: 'Decrypt a NIP-44 message', action: 'Decrypt a message' },
+			{
+				name: 'Encrypt',
+				value: 'encrypt',
+				description: 'Encrypt a message with NIP-44',
+				action: 'Encrypt a message',
+			},
+			{
+				name: 'Decrypt',
+				value: 'decrypt',
+				description: 'Decrypt a NIP-44 message',
+				action: 'Decrypt a message',
+			},
 		],
 	},
 	{
@@ -26,7 +36,8 @@ export const description: INodeProperties[] = [
 		displayOptions: { show: { resource: ['encryption'] } },
 		default: '',
 		placeholder: 'npub1… or 64-character hex',
-		description: 'The other party public key. The conversation key is derived from it and your own secret key.',
+		description:
+			'The other party public key. The conversation key is derived from it and your own secret key.',
 	},
 	{
 		displayName: 'Plaintext',
@@ -51,20 +62,18 @@ export const description: INodeProperties[] = [
 async function conversationKey(c: OperationContext): Promise<Uint8Array> {
 	const secretKey = await requireSecretKey(c.ctx, 'NIP-44 encryption')
 	const raw = c.ctx.getNodeParameter('peerPublicKey', c.itemIndex, '') as string
-
-	let peer: string
-	try {
-		peer = normalizePubkey(raw)
-	} catch (err) {
-		throw new NodeOperationError(c.ctx.getNode(), (err as Error).message, { itemIndex: c.itemIndex })
-	}
+	const peer = normalizeOrThrow(c.ctx, normalizePubkey, raw, c.itemIndex)
 
 	try {
 		return nip44.getConversationKey(secretKey, peer)
 	} catch (err) {
-		throw new NodeOperationError(c.ctx.getNode(), `Could not derive a conversation key: ${(err as Error).message}`, {
-			itemIndex: c.itemIndex,
-		})
+		throw new NodeOperationError(
+			c.ctx.getNode(),
+			`Could not derive a conversation key: ${(err as Error).message}`,
+			{
+				itemIndex: c.itemIndex,
+			},
+		)
 	}
 }
 
@@ -73,7 +82,7 @@ const encrypt: OperationFn = async (c) => {
 	const plaintext = c.ctx.getNodeParameter('plaintext', c.itemIndex, '') as string
 
 	try {
-		return [{ json: { ciphertext: nip44.encrypt(plaintext, key), version: 'nip44' }, pairedItem: { item: c.itemIndex } }]
+		return [toItem({ ciphertext: nip44.encrypt(plaintext, key), version: 'nip44' }, c.itemIndex)]
 	} catch (err) {
 		throw new NodeOperationError(c.ctx.getNode(), `Could not encrypt: ${(err as Error).message}`, {
 			itemIndex: c.itemIndex,
@@ -86,7 +95,7 @@ const decrypt: OperationFn = async (c) => {
 	const ciphertext = c.ctx.getNodeParameter('ciphertext', c.itemIndex, '') as string
 
 	try {
-		return [{ json: { plaintext: nip44.decrypt(ciphertext, key) }, pairedItem: { item: c.itemIndex } }]
+		return [toItem({ plaintext: nip44.decrypt(ciphertext, key) }, c.itemIndex)]
 	} catch (err) {
 		throw new NodeOperationError(c.ctx.getNode(), `Could not decrypt: ${(err as Error).message}`, {
 			itemIndex: c.itemIndex,
