@@ -25,6 +25,15 @@ import type { OperationContext, OperationFn, ResourceModule } from '../types'
 
 const showFor = (operation: string[]) => ({ show: { resource: ['event'], operation } })
 
+// The filter fields are shared by Get and Get Many. Limit and Until only make
+// sense when returning many, so they are scoped to Get Many alone.
+const filterFields = {
+	show: { resource: ['event'], operation: ['get', 'getMany'], filterMode: ['fields'] },
+}
+const manyFilterFields = {
+	show: { resource: ['event'], operation: ['getMany'], filterMode: ['fields'] },
+}
+
 export const description: INodeProperties[] = [
 	{
 		displayName: 'Operation',
@@ -32,19 +41,25 @@ export const description: INodeProperties[] = [
 		type: 'options',
 		noDataExpression: true,
 		displayOptions: { show: { resource: ['event'] } },
-		default: 'publish',
+		default: 'create',
 		options: [
 			{
-				name: 'Publish',
-				value: 'publish',
-				description: 'Sign and send an event to relays',
-				action: 'Publish an event',
+				name: 'Create',
+				value: 'create',
+				description: 'Create a new event',
+				action: 'Create an event',
 			},
 			{
-				name: 'Query',
-				value: 'query',
-				description: 'Fetch events matching a filter',
-				action: 'Query events',
+				name: 'Get',
+				value: 'get',
+				description: 'Retrieve an event',
+				action: 'Get an event',
+			},
+			{
+				name: 'Get Many',
+				value: 'getMany',
+				description: 'Retrieve a list of events',
+				action: 'Get many events',
 			},
 			{
 				name: 'Sign',
@@ -60,7 +75,7 @@ export const description: INodeProperties[] = [
 		name: 'inputMode',
 		type: 'options',
 		noDataExpression: true,
-		displayOptions: showFor(['publish', 'sign']),
+		displayOptions: showFor(['create', 'sign']),
 		default: 'fields',
 		options: [
 			{ name: 'Fields', value: 'fields', description: 'Build the event from individual fields' },
@@ -73,7 +88,7 @@ export const description: INodeProperties[] = [
 		name: 'kind',
 		type: 'number',
 		displayOptions: {
-			show: { resource: ['event'], operation: ['publish', 'sign'], inputMode: ['fields'] },
+			show: { resource: ['event'], operation: ['create', 'sign'], inputMode: ['fields'] },
 		},
 		default: 1,
 		description: 'The event kind. 1 is a short text note.',
@@ -84,7 +99,7 @@ export const description: INodeProperties[] = [
 		type: 'string',
 		typeOptions: { rows: 5 },
 		displayOptions: {
-			show: { resource: ['event'], operation: ['publish', 'sign'], inputMode: ['fields'] },
+			show: { resource: ['event'], operation: ['create', 'sign'], inputMode: ['fields'] },
 		},
 		default: '',
 		description: 'The event content',
@@ -94,7 +109,7 @@ export const description: INodeProperties[] = [
 		name: 'tags',
 		type: 'json',
 		displayOptions: {
-			show: { resource: ['event'], operation: ['publish', 'sign'], inputMode: ['fields'] },
+			show: { resource: ['event'], operation: ['create', 'sign'], inputMode: ['fields'] },
 		},
 		default: '[]',
 		description: 'Event tags, as an array of string arrays. For example [["t","nostr"]].',
@@ -104,19 +119,19 @@ export const description: INodeProperties[] = [
 		name: 'event',
 		type: 'json',
 		displayOptions: {
-			show: { resource: ['event'], operation: ['publish', 'sign'], inputMode: ['rawEvent'] },
+			show: { resource: ['event'], operation: ['create', 'sign'], inputMode: ['rawEvent'] },
 		},
 		default: '{}',
 		description:
 			'A complete event object. If it already has an ID and signature it is published as-is.',
 	},
 
-	{ ...filterModeField, displayOptions: showFor(['query']) },
+	{ ...filterModeField, displayOptions: showFor(['get', 'getMany']) },
 	{
 		displayName: 'Kinds',
 		name: 'kinds',
 		type: 'string',
-		displayOptions: { show: { resource: ['event'], operation: ['query'], filterMode: ['fields'] } },
+		displayOptions: filterFields,
 		default: '1',
 		description: 'Comma-separated event kinds',
 	},
@@ -125,7 +140,7 @@ export const description: INodeProperties[] = [
 		name: 'authors',
 		type: 'string',
 		typeOptions: { rows: 2 },
-		displayOptions: { show: { resource: ['event'], operation: ['query'], filterMode: ['fields'] } },
+		displayOptions: filterFields,
 		default: '',
 		description: 'Author public keys, as npub or hex, one per line or comma-separated',
 	},
@@ -134,7 +149,7 @@ export const description: INodeProperties[] = [
 		name: 'ids',
 		type: 'string',
 		typeOptions: { rows: 2 },
-		displayOptions: { show: { resource: ['event'], operation: ['query'], filterMode: ['fields'] } },
+		displayOptions: filterFields,
 		default: '',
 		description: 'Event IDs, as note, nevent or hex, one per line or comma-separated',
 	},
@@ -142,7 +157,7 @@ export const description: INodeProperties[] = [
 		displayName: 'Search',
 		name: 'search',
 		type: 'string',
-		displayOptions: { show: { resource: ['event'], operation: ['query'], filterMode: ['fields'] } },
+		displayOptions: filterFields,
 		default: '',
 		description: 'Full-text search, on relays that support NIP-50',
 	},
@@ -150,7 +165,7 @@ export const description: INodeProperties[] = [
 		displayName: 'Since',
 		name: 'since',
 		type: 'dateTime',
-		displayOptions: { show: { resource: ['event'], operation: ['query'], filterMode: ['fields'] } },
+		displayOptions: filterFields,
 		default: '',
 		description: 'Only events created at or after this time',
 	},
@@ -158,7 +173,7 @@ export const description: INodeProperties[] = [
 		displayName: 'Until',
 		name: 'until',
 		type: 'dateTime',
-		displayOptions: { show: { resource: ['event'], operation: ['query'], filterMode: ['fields'] } },
+		displayOptions: manyFilterFields,
 		default: '',
 		description: 'Only events created at or before this time',
 	},
@@ -167,33 +182,30 @@ export const description: INodeProperties[] = [
 		name: 'limit',
 		type: 'number',
 		typeOptions: { minValue: 1 },
-		displayOptions: { show: { resource: ['event'], operation: ['query'], filterMode: ['fields'] } },
+		displayOptions: manyFilterFields,
 		default: 50,
 		description: 'Max number of results to return',
 	},
-	{
-		...tagFiltersField,
-		displayOptions: { show: { resource: ['event'], operation: ['query'], filterMode: ['fields'] } },
-	},
+	{ ...tagFiltersField, displayOptions: filterFields },
 	{
 		displayName: 'Filter',
 		name: 'filter',
 		type: 'json',
 		displayOptions: {
-			show: { resource: ['event'], operation: ['query'], filterMode: ['rawFilter'] },
+			show: { resource: ['event'], operation: ['get', 'getMany'], filterMode: ['rawFilter'] },
 		},
 		default: '{"kinds":[1],"limit":20}',
 		description: 'A raw NIP-01 filter object, or an array of them',
 	},
 
-	{ ...relaysField, displayOptions: showFor(['publish', 'query']) },
+	{ ...relaysField, displayOptions: showFor(['create', 'get', 'getMany']) },
 
 	{
 		displayName: 'Options',
 		name: 'options',
 		type: 'collection',
 		placeholder: 'Add option',
-		displayOptions: showFor(['publish']),
+		displayOptions: showFor(['create']),
 		default: {},
 		options: [
 			authenticateOption,
@@ -231,7 +243,26 @@ export const description: INodeProperties[] = [
 		name: 'options',
 		type: 'collection',
 		placeholder: 'Add option',
-		displayOptions: showFor(['query']),
+		displayOptions: showFor(['get']),
+		default: {},
+		options: [
+			authenticateOption,
+			{
+				displayName: 'Close On EOSE',
+				name: 'closeOnEose',
+				type: 'boolean',
+				default: true,
+				description: 'Whether to stop once every relay reports end of stored events',
+			},
+			timeoutMsOption(8000, 'Wall-clock deadline. The lookup always returns by this time.'),
+		],
+	},
+	{
+		displayName: 'Options',
+		name: 'options',
+		type: 'collection',
+		placeholder: 'Add option',
+		displayOptions: showFor(['getMany']),
 		default: {},
 		options: [
 			authenticateOption,
@@ -272,10 +303,16 @@ export const description: INodeProperties[] = [
 	},
 ]
 
-interface PublishOpts {
+interface CreateOpts {
 	authenticate?: boolean
 	createdAt?: string
 	splitResultsIntoItems?: boolean
+	timeoutMs?: number
+}
+
+interface GetOpts {
+	authenticate?: boolean
+	closeOnEose?: boolean
 	timeoutMs?: number
 }
 
@@ -291,7 +328,7 @@ interface QueryOpts {
 /** An absent or unparseable timestamp means "now", not an error. */
 const createdAtFrom = (value: string | undefined): number => toUnixSeconds(value) ?? nowSec()
 
-/** Builds the event to publish or sign. Returns it already signed. */
+/** Builds the event to create or sign. Returns it already signed. */
 async function buildSignedEvent(
 	c: OperationContext,
 	createdAt: string | undefined,
@@ -336,8 +373,8 @@ async function buildSignedEvent(
 	})
 }
 
-const publish: OperationFn = async (c) => {
-	const opts = c.ctx.getNodeParameter('options', c.itemIndex, {}) as PublishOpts
+const create: OperationFn = async (c) => {
+	const opts = c.ctx.getNodeParameter('options', c.itemIndex, {}) as CreateOpts
 	const event = await buildSignedEvent(c, opts.createdAt)
 	const relays = await resolveRelays(c.ctx, c.itemIndex)
 	const signer = await resolveSigner(c.ctx)
@@ -389,7 +426,34 @@ const sign: OperationFn = async (c) => {
 	return [toItem(json, c.itemIndex)]
 }
 
-const query: OperationFn = async (c): Promise<INodeExecutionData[]> => {
+const get: OperationFn = async (c): Promise<INodeExecutionData[]> => {
+	const opts = c.ctx.getNodeParameter('options', c.itemIndex, {}) as GetOpts
+	// Get returns a single event: force limit 1 on every filter and drop until.
+	const filters = buildFilter(c.ctx, c.itemIndex, { allowLimitUntil: false }).map((filter) => ({
+		...filter,
+		limit: 1,
+	}))
+	const relays = await resolveRelays(c.ctx, c.itemIndex)
+	const signer = await resolveSigner(c.ctx)
+
+	const events = await queryRelays(c.pool, filters, relays, {
+		timeoutMs: opts.timeoutMs ?? 8_000,
+		closeOnEose: opts.closeOnEose ?? true,
+		dedup: true,
+		authenticate: opts.authenticate ?? true,
+		signer,
+	})
+
+	// Different relays may each return their own newest match; keep the newest overall.
+	const newest = events.reduce<Event | undefined>(
+		(best, event) => (!best || event.created_at > best.created_at ? event : best),
+		undefined,
+	)
+
+	return newest ? [eventToItem(newest, { itemIndex: c.itemIndex })] : []
+}
+
+const getMany: OperationFn = async (c): Promise<INodeExecutionData[]> => {
 	const opts = c.ctx.getNodeParameter('options', c.itemIndex, {}) as QueryOpts
 	const filters = buildFilter(c.ctx, c.itemIndex, { allowLimitUntil: true })
 	const relays = await resolveRelays(c.ctx, c.itemIndex)
@@ -423,6 +487,6 @@ const query: OperationFn = async (c): Promise<INodeExecutionData[]> => {
 	return events.map((event) => eventToItem(event, { itemIndex: c.itemIndex }))
 }
 
-export const operations: Record<string, OperationFn> = { publish, sign, query }
+export const operations: Record<string, OperationFn> = { create, get, getMany, sign }
 
 export const module: ResourceModule = { description, operations }

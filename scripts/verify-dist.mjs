@@ -106,12 +106,12 @@ check('Nostr node loads, versions, and declares themed icons', () => {
 	assert(existsSync(join(DIST, 'nodes/Nostr/Nostr.node.json')), 'codex file must sit beside the node')
 })
 
-check('Nostr node exposes all four resources', () => {
+check('Nostr node exposes its three resources', () => {
 	const v1 = nostrNode.nodeVersions[1]
 	const resource = v1.description.properties.find((p) => p.name === 'resource')
 	const values = resource.options.map((o) => o.value).sort()
 	assert(
-		JSON.stringify(values) === JSON.stringify(['encryption', 'event', 'profile', 'utility']),
+		JSON.stringify(values) === JSON.stringify(['encryption', 'event', 'utility']),
 		`unexpected resources: ${values}`,
 	)
 })

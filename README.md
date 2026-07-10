@@ -1,8 +1,8 @@
 # n8n-nodes-nostr
 
 An [n8n](https://n8n.io) community node package for the
-[Nostr](https://github.com/nostr-protocol/nostr) protocol. Publish, sign, and
-query events, look up profiles, encrypt and decrypt with NIP-44, encode and
+[Nostr](https://github.com/nostr-protocol/nostr) protocol. Create and sign
+events, fetch them by filter, encrypt and decrypt with NIP-44, encode and
 decode NIP-19 entities, authenticate to relays with NIP-42, and trigger
 workflows from a live event subscription.
 
@@ -15,8 +15,7 @@ is vendored into the package and compiled from source. See
 
 This package provides two nodes and one credential.
 
-- **Nostr** — an action node with four resources (Event, Profile, Encryption,
-  Utility).
+- **Nostr** — an action node with three resources (Event, Encryption, Utility).
 - **Nostr Trigger** — starts a workflow when a matching event arrives on your
   relays.
 - **Nostr Private Key API** — the credential holding your secret key and default
@@ -53,8 +52,8 @@ The credential test validates the key format and derives its `npub` locally — 
 makes **no network request**. A valid key reports the derived `npub`; an invalid
 one reports why.
 
-The credential is optional for read-only work (querying, decoding). It is
-required for anything that signs or encrypts: publishing, signing, and NIP-44
+The credential is optional for read-only work (getting events, decoding). It is
+required for anything that signs or encrypts: creating, signing, and NIP-44
 encrypt/decrypt.
 
 ## Nostr (action node)
@@ -63,28 +62,24 @@ Pick a **Resource**, then an **Operation**.
 
 ### Event
 
-- **Publish** — build and sign an event (or pass a fully-formed raw event) and
+- **Create** — build and sign an event (or pass a fully-formed raw event) and
   broadcast it to relays. Returns one result **per relay** (see
   [Relay semantics](#relay-semantics)).
+- **Get** — fetch the single newest event matching a filter. Forces `limit` 1 and
+  returns one item, or nothing when no event matches.
+- **Get Many** — fetch stored events matching a filter. Terminates
+  deterministically on `limit`, on end-of-stored-events, or on a wall-clock
+  timeout, and dedups across relays.
 - **Sign** — finalize and sign an event offline, without touching the network.
   Returns the signed event, its `id`, `pubkey`, and optionally an `nevent`.
-- **Query** — fetch stored events matching a filter. Terminates deterministically
-  on `limit`, on end-of-stored-events, or on a wall-clock timeout, and dedups
-  across relays.
 
-Both **Publish** and **Sign** accept either **Fields** mode (`kind`, `content`,
+Both **Create** and **Sign** accept either **Fields** mode (`kind`, `content`,
 `tags`) or **Raw Event JSON** mode. A raw event that already carries a valid `id`
 and `sig` is published as-is; otherwise it is finalized with your credential.
 
-### Profile
-
-- **Get** — fetch a user's kind-0 metadata (newest wins) and parse it into named
-  fields (`name`, `display_name`, `about`, `picture`, `nip05`, `lud16`, …). A
-  pubkey with no profile returns `{ found: false }` rather than an error.
-- **Get Relays** — fetch a user's kind-10002 relay list (NIP-65) as `read` /
-  `write` / combined lists.
-
-Leave **pubkeys** empty to use your own key from the credential.
+A profile is just a kind-0 event and a relay list a kind-10002 event, so **Get**
+with the right `kinds` fetches either; parse the JSON `content` in a downstream
+node.
 
 ### Encryption (NIP-44)
 
@@ -132,7 +127,7 @@ opening a live tail.
 **Cross-post to Nostr when a webhook fires.**
 
 1. **Webhook** node receives a payload with a `message` field.
-2. **Nostr** node — Resource **Event**, Operation **Publish**:
+2. **Nostr** node — Resource **Event**, Operation **Create**:
    - `inputMode`: **Fields**
    - `kind`: `1`
    - `content`: `={{ $json.message }}`
@@ -151,7 +146,7 @@ filter set to your own pubkey.
 Nostr is not request/response, and these nodes surface that faithfully instead of
 hiding it:
 
-- **Publish returns per-relay results, never one boolean.** Each relay
+- **Create returns per-relay results, never one boolean.** Each relay
   independently accepts or rejects an event with its own reason. Acceptance on
   one relay is not acceptance on another, so the node returns the full
   `results[]` array plus `accepted` / `rejected` / `allAccepted` / `anyAccepted`.

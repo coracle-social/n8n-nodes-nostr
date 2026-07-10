@@ -29,14 +29,14 @@ const CREDS = { privateKey: SK_HEX, defaultRelays: '' }
 const run = (params: Record<string, unknown>, extra: Record<string, unknown> = {}) =>
 	node.execute.call(mockExecuteFunctions({ params, credentials: CREDS, ...extra }) as never)
 
-describe('event: publish', () => {
+describe('event: create', () => {
 	it('reports every relay result and never collapses them', async () => {
 		const good = track(await startMockRelay())
 		const bad = track(await startMockRelay({ rejectPublishReason: 'blocked: nope' }))
 
 		const [items] = await run({
 			resource: 'event',
-			operation: 'publish',
+			operation: 'create',
 			inputMode: 'fields',
 			kind: 1,
 			content: 'hello from n8n',
@@ -60,7 +60,7 @@ describe('event: publish', () => {
 
 		const [items] = await run({
 			resource: 'event',
-			operation: 'publish',
+			operation: 'create',
 			inputMode: 'fields',
 			kind: 1,
 			content: 'split',
@@ -78,7 +78,7 @@ describe('event: publish', () => {
 		const fns = mockExecuteFunctions({
 			params: {
 				resource: 'event',
-				operation: 'publish',
+				operation: 'create',
 				inputMode: 'fields',
 				kind: 1,
 				content: 'x',
@@ -96,7 +96,7 @@ describe('event: publish', () => {
 		const fns = mockExecuteFunctions({
 			params: {
 				resource: 'event',
-				operation: 'publish',
+				operation: 'create',
 				inputMode: 'fields',
 				kind: 1,
 				content: 'x',
@@ -119,7 +119,7 @@ describe('event: publish', () => {
 		const fns = mockExecuteFunctions({
 			params: {
 				resource: 'event',
-				operation: 'publish',
+				operation: 'create',
 				inputMode: 'rawEvent',
 				event: JSON.stringify(forged),
 				relays: relay.url,
@@ -151,7 +151,43 @@ describe('event: sign', () => {
 	})
 })
 
-describe('event: query', () => {
+describe('event: get', () => {
+	it('returns the single newest event matching the filter', async () => {
+		const older = makeEvent({ content: 'older', created_at: 1_000 })
+		const newer = makeEvent({ content: 'newer', created_at: 2_000 })
+		const a = track(await startMockRelay({ events: [older] }))
+		const b = track(await startMockRelay({ events: [newer] }))
+
+		const [items] = await run({
+			resource: 'event',
+			operation: 'get',
+			filterMode: 'fields',
+			kinds: '1',
+			relays: `${a.url}\n${b.url}`,
+			options: { timeoutMs: 3000 },
+		})
+
+		expect(items).toHaveLength(1)
+		expect((items[0].json as any).content).toBe('newer')
+	})
+
+	it('returns nothing when no event matches', async () => {
+		const relay = track(await startMockRelay({ events: [] }))
+
+		const [items] = await run({
+			resource: 'event',
+			operation: 'get',
+			filterMode: 'fields',
+			kinds: '1',
+			relays: relay.url,
+			options: { timeoutMs: 3000 },
+		})
+
+		expect(items).toHaveLength(0)
+	})
+})
+
+describe('event: get many', () => {
 	it('returns one item per event and dedups across relays', async () => {
 		const shared = makeEvent({ content: 'shared' })
 		const a = track(await startMockRelay({ events: [shared, makeEvent({ content: 'only-a' })] }))
@@ -159,7 +195,7 @@ describe('event: query', () => {
 
 		const [items] = await run({
 			resource: 'event',
-			operation: 'query',
+			operation: 'getMany',
 			filterMode: 'fields',
 			kinds: '1',
 			limit: 10,
@@ -176,7 +212,7 @@ describe('event: query', () => {
 
 		const [items] = await run({
 			resource: 'event',
-			operation: 'query',
+			operation: 'getMany',
 			filterMode: 'fields',
 			kinds: '1',
 			limit: 10,
@@ -194,7 +230,7 @@ describe('event: query', () => {
 		const fns = mockExecuteFunctions({
 			params: {
 				resource: 'event',
-				operation: 'query',
+				operation: 'getMany',
 				filterMode: 'fields',
 				kinds: '1',
 				limit: 10,

@@ -41,13 +41,11 @@ export class NostrV1 implements INodeType {
 					default: 'event',
 					options: [
 						{ name: 'Event', value: 'event' },
-						{ name: 'Profile', value: 'profile' },
 						{ name: 'Encryption', value: 'encryption' },
 						{ name: 'Utility', value: 'utility' },
 					],
 				},
 				...resources.event.description,
-				...resources.profile.description,
 				...resources.encryption.description,
 				...resources.utility.description,
 			],
