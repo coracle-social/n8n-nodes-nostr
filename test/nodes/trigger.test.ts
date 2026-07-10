@@ -178,8 +178,15 @@ describe('NostrTrigger live subscription', () => {
 })
 
 describe('NostrTrigger manual mode', () => {
-	it('returns a bounded batch instead of tailing forever', async () => {
-		const relay = track(await startMockRelay({ events: [makeEvent({ content: 'stored' })] }))
+	it('returns a single event instead of tailing forever', async () => {
+		const relay = track(
+			await startMockRelay({
+				events: [
+					makeEvent({ content: 'older', created_at: 1_000 }),
+					makeEvent({ content: 'newer', created_at: 2_000 }),
+				],
+			}),
+		)
 		const mock = mockTriggerFunctions({
 			params: { relays: relay.url, filterMode: 'fields', kinds: '1', options: {} },
 			credentials: CREDS,
@@ -196,6 +203,7 @@ describe('NostrTrigger manual mode', () => {
 		expect(Date.now() - started).toBeLessThan(6_000)
 
 		expect(mock.emits).toHaveLength(1)
-		expect((mock.emits[0].data[0][0].json as any).content).toBe('stored')
+		// A single event, not a batch — the whole point of the manual preview.
+		expect(mock.emits[0].data[0]).toHaveLength(1)
 	}, 15_000)
 })

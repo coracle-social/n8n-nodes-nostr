@@ -1,5 +1,4 @@
 import type {
-	IDataObject,
 	INodeType,
 	INodeTypeDescription,
 	ITriggerFunctions,
@@ -189,18 +188,21 @@ export class NostrTrigger implements INodeType {
 
 		/**
 		 * "Execute step" in the editor must return promptly. A live tail never would,
-		 * so fetch a bounded batch of recent events instead.
+		 * so fetch just the single most recent matching event — enough to preview the
+		 * output shape without opening a tail. Formatted like the live path so the
+		 * preview matches what the running trigger will emit.
 		 */
 		const manualTriggerFunction = async (): Promise<void> => {
 			const events = await query(pool, filters, relays, {
-				limit: 20,
+				limit: 1,
 				timeoutMs: 5_000,
 				closeOnEose: true,
 				dedup: true,
 				authenticate,
 				signer,
 			})
-			this.emit([this.helpers.returnJsonArray(events as unknown as IDataObject[])])
+			const json = events.map((event) => eventToJson(event, { envelope: emitEnvelope }))
+			this.emit([this.helpers.returnJsonArray(json)])
 		}
 
 		if (this.getMode() === 'trigger') {
