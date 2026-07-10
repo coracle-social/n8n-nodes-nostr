@@ -388,27 +388,10 @@ It lives on GitHub for one reason: **npm provenance**.
 Provenance attests *repository and commit*, so `package.json`'s `repository.url`
 must match this repo **case-sensitively**.
 
-### One-time setup: bootstrap, then trusted publishing
+### One-time setup: trusted publishing
 
-The destination is npm **Trusted Publishing** (OIDC): no long-lived credential
-anywhere, and provenance generated automatically. Getting there takes one
-bootstrap step, because `npm trust` requires that *"the package you're
-configuring must already exist on the npm registry"* — and a brand-new name does
-not.
-
-Note that provenance does **not** depend on how you authenticate. npm gates it on
-`GITHUB_ACTIONS` + `ACTIONS_ID_TOKEN_REQUEST_URL` (hence `id-token: write`), never
-on the registry credential. So the bootstrap release is fully attested too.
-
-**1. Publish the first release with a token.**
-
-Create a granular access token on npmjs.com with read+write, scoped to *All
-packages* — you cannot scope it to `n8n-nodes-nostr`, which does not exist yet.
-Add it to the repo as the secret `NPM_TOKEN`
-(Settings → Secrets and variables → Actions). Then cut a release (below). The
-workflow publishes it with provenance.
-
-**2. Hand publishing rights to the workflow.**
+Publishing uses npm **Trusted Publishing** (OIDC). The workflow holds no secrets,
+and there is no long-lived credential anywhere.
 
 ```bash
 npm trust github n8n-nodes-nostr \
@@ -420,16 +403,22 @@ npm trust list n8n-nodes-nostr    # confirm it took
 
 `npm trust` needs npm >= 11.5.1 and account-level 2FA.
 
-**3. Delete the token.**
+Do **not** create a permanent CI token with *Bypass 2FA*. npm warns against it,
+and trusted publishing makes it unnecessary.
 
-- Remove the `env: NODE_AUTH_TOKEN` block from `.github/workflows/publish.yml`.
-- Delete the `NPM_TOKEN` repo secret.
-- Revoke the token on npmjs.com.
+<details>
+<summary>How the first release was bootstrapped</summary>
 
-Every subsequent release authenticates over OIDC. Nothing long-lived remains.
+`npm trust` requires that *"the package you're configuring must already exist on
+the npm registry"*, so a brand-new name cannot be configured before its first
+publish. Version `0.1.1` was therefore published from CI with a temporary
+granular access token in a `NPM_TOKEN` secret, which was then revoked.
 
-Do not tick **Bypass 2FA** on a permanent CI token — npm warns against it, and
-after step 3 you will not need a token at all.
+That first release still carried provenance. Provenance does not depend on how
+you authenticate: npm gates it on `GITHUB_ACTIONS` + `ACTIONS_ID_TOKEN_REQUEST_URL`
+(hence `id-token: write`), never on the registry credential.
+
+</details>
 
 ### Cutting a release
 
@@ -463,13 +452,18 @@ unattested build that n8n would then refuse to verify.
 ### Verifying a release
 
 ```bash
-npm view n8n-nodes-nostr dist.attestations   # must be non-empty
 npx @n8n/scan-community-package n8n-nodes-nostr
 ```
 
-The second command is the real test. It is the same analyser `npm run scan` runs
-locally, except it also fetches the registry metadata and runs the provenance
-check that n8n's verification depends on.
+This is the real test — the same analyser `npm run scan` runs locally, except it
+also fetches the registry metadata and runs the provenance check that n8n's
+verification depends on. A passing run looks like:
+
+```
+Checking provenance for n8n-nodes-nostr@0.1.1...✅ Provenance check passed
+Analyzing n8n-nodes-nostr@0.1.1...✅ Analyzed
+✅ Package n8n-nodes-nostr@0.1.1 has passed all security checks
+```
 
 ## Development
 
