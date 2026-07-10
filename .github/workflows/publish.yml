@@ -39,6 +39,11 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
 
+      # Node 22 bundles npm 10.x. Trusted publishing (OIDC) needs npm >= 11.5.1,
+      # and without it `npm publish` falls back to token auth and fails ENEEDAUTH.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
+
       - run: npm ci
 
       # A tag that disagrees with package.json would publish the wrong version
@@ -57,11 +62,11 @@ jobs:
       - run: node scripts/verify-dist.mjs
       - run: node scripts/scan.mjs
 
+      # Authentication is npm Trusted Publishing (OIDC), configured once with
+      # `npm trust github` — see README. There is deliberately no NPM_TOKEN: a
+      # granular token would need "Bypass 2FA", which npm itself warns against
+      # for CI. The OIDC exchange needs `id-token: write` above.
+      #
       # publishConfig in package.json supplies --provenance --access public.
-      # Provenance works with a plain npm token; Trusted Publishing is optional
-      # and cannot be configured for a package that does not exist on npm yet,
-      # so the first publish must use NPM_TOKEN.
       - name: Publish to npm with provenance
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
