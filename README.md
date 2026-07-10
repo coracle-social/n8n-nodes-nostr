@@ -419,13 +419,6 @@ npm error EUSAGE Automatic provenance generation not supported for provider: <na
 That guard is the point. It makes it impossible to accidentally ship an
 unattested build that n8n would then refuse to verify.
 
-### Keeping a self-hosted copy
-
-If you want the code mirrored onto your own Gitea, use a **pull** mirror: Gitea
-fetches from GitHub, needs no credentials for a public repo, and cannot
-force-push over your source of truth. Note that Gitea can only create a pull
-mirror at migration time — an existing repository cannot be converted into one.
-
 ## Development
 
 ```bash
