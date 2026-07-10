@@ -14,6 +14,7 @@ import {
 	buildFilter,
 	eventToJson,
 	filterModeField,
+	nostrKeyTest,
 	relaysField,
 	resolveRelays,
 	resolveSigner,
@@ -49,7 +50,7 @@ export class NostrTrigger implements INodeType {
 		defaults: { name: 'Nostr Trigger' },
 		inputs: [],
 		outputs: ['main'],
-		credentials: [{ name: 'nostrPrivateKeyApi', required: false }],
+		credentials: [{ name: 'nostrPrivateKeyApi', required: false, testedBy: 'nostrKeyTest' }],
 		properties: [
 			relaysField,
 			filterModeField,
@@ -127,6 +128,12 @@ export class NostrTrigger implements INodeType {
 				],
 			},
 		],
+	}
+
+	// The trigger uses the credential for NIP-42 auth, so n8n's verification
+	// requires it to declare a test too. Same local npub derivation as the action node.
+	methods = {
+		credentialTest: { nostrKeyTest },
 	}
 
 	async trigger(this: ITriggerFunctions): Promise<ITriggerResponse> {

@@ -8,8 +8,7 @@ import type {
 } from 'n8n-workflow'
 
 import { RelayPool } from '../../../relay'
-import { resolveSigner } from '../../shared'
-import { nostrKeyTest } from './methods/credentialTest'
+import { nostrKeyTest, resolveSigner } from '../../shared'
 import { resources, route } from './router'
 
 export class NostrV1 implements INodeType {

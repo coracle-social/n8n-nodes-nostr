@@ -4,7 +4,7 @@ import type {
 	INodeCredentialTestResult,
 } from 'n8n-workflow'
 
-import { getPublicKey, nip19, normalizeSecretKey } from '../../../../nostr'
+import { getPublicKey, nip19, normalizeSecretKey } from '../../nostr'
 
 /**
  * Validates the key's format and derives its npub. There is nothing to reach out

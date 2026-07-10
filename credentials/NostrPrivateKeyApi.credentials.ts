@@ -32,6 +32,6 @@ export class NostrPrivateKeyApi implements ICredentialType {
 	]
 
 	// Nostr has no HTTP endpoint to probe, so there is no ICredentialTestRequest here.
-	// The Nostr node declares `testedBy: 'nostrKeyTest'`, which validates the key's
-	// format and derives its npub without touching the network.
+	// Both nodes declare `testedBy: 'nostrKeyTest'`, which validates the key's format
+	// and derives its npub without touching the network.
 }

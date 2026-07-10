@@ -1,4 +1,5 @@
 export { optionalCredentials, paramReader } from './context'
+export { nostrKeyTest } from './credentialTest'
 export type { NodeFns, ParamReader } from './context'
 export { normalizeOrThrow, parseJsonParam, splitList, toUnixSeconds } from './params'
 export { parseRelayList, resolveRelays } from './resolveRelays'

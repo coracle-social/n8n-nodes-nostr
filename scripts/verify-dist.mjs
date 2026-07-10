@@ -128,6 +128,12 @@ check('Nostr Trigger loads and is a trigger', () => {
 	assert(triggerNode.description.group.includes('trigger'), 'must be in the trigger group')
 	assert(typeof triggerNode.trigger === 'function', 'must implement trigger()')
 	assert(triggerNode.description.inputs.length === 0, 'a trigger takes no inputs')
+	// n8n verification requires every node that uses a credential to test it.
+	assert(
+		triggerNode.description.credentials[0].testedBy === 'nostrKeyTest',
+		'trigger credential should be testedBy nostrKeyTest',
+	)
+	assert(typeof triggerNode.methods.credentialTest.nostrKeyTest === 'function', 'trigger must wire nostrKeyTest')
 	checkThemedIcon(triggerNode.description.icon, join(DIST, 'nodes/NostrTrigger'), 'Nostr Trigger')
 })
 
@@ -141,7 +147,7 @@ check('credential loads and masks the secret', () => {
 })
 
 check('credential test derives an npub without network', async () => {
-	const { nostrKeyTest } = require(join(DIST, 'nodes/Nostr/v1/methods/credentialTest.js'))
+	const { nostrKeyTest } = require(join(DIST, 'nodes/shared/credentialTest.js'))
 	const good = await nostrKeyTest.call(
 		{},
 		{ data: { privateKey: '67dea2ed018072d675f5415ecfaed7d2597555e202d85b3d65ea4e58d2d92ffa' } },
