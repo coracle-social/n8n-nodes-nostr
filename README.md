@@ -366,13 +366,13 @@ then hard-refresh the editor — it caches node types.
 
 ## Publishing and verification
 
-**Gitea is the primary remote** (`gitea.coracle.social/coracle/n8n-nodes-nostr`).
-It runs the full gate on every push via `.gitea/workflows/ci.yml`: lint, tests,
-build, `verify-dist`, n8n's static analyser, and a check that the vendored crypto
-still reproduces from upstream.
+The canonical repo is
+[coracle-social/n8n-nodes-nostr](https://github.com/coracle-social/n8n-nodes-nostr)
+on GitHub. `.github/workflows/ci.yml` runs the full gate on every push and pull
+request: lint, tests, build, `verify-dist`, n8n's static analyser, and a check
+that the vendored crypto still reproduces from upstream.
 
-**A GitHub mirror exists solely to publish.** That is not a preference; it is
-forced by three facts:
+It lives on GitHub for one reason: **npm provenance**.
 
 1. n8n's
    [verification guidelines](https://docs.n8n.io/connect/create-nodes/build-your-node/reference/verification-guidelines.md)
@@ -383,53 +383,15 @@ forced by three facts:
    was not published with npm provenance"* when it is absent.
 3. npm can only generate provenance under `GITHUB_ACTIONS` or `GITLAB_CI`. It
    does not merely read an environment variable — it signs the attestation
-   through Sigstore using the CI's OIDC token. Gitea Actions sets
-   `GITHUB_ACTIONS=true` for compatibility, so npm takes the GitHub branch and
-   then fails on the missing `ACTIONS_ID_TOKEN_REQUEST_URL`.
+   through Sigstore using the CI's OIDC token, so no other forge can produce one.
 
-Because provenance attests *repository and commit*, `package.json`'s
-`repository.url` must point at the GitHub mirror, not at Gitea.
+Provenance attests *repository and commit*, so `package.json`'s `repository.url`
+must match this repo **case-sensitively**.
 
-```
-gitea (origin, source of truth)  ──push mirror──►  github (publish only)
-        │                                                  │
-        └─ .gitea/workflows/ci.yml                          └─ .github/workflows/publish.yml
-           lint · test · verify · scan                         npm publish --provenance
-```
+### One-time setup
 
-### Setting up the GitHub mirror
-
-One-time. Gitea push-mirrors to GitHub; GitHub only ever publishes.
-
-**1. Create the GitHub repo.** `coracle-social/n8n-nodes-nostr`, **public**, and
-completely empty — no README, no licence, no `.gitignore`. Gitea's mirror is a
-**force push** and will overwrite anything already there. The URL must match
-`repository.url` in `package.json` **case-sensitively**, or npm rejects the
-provenance statement.
-
-If the repo's default branch is `master` while this repo's is `main`, GitHub
-adopts the first branch pushed into an empty repo. Confirm afterwards under
-Settings → General → Default branch, since the publish workflow and the
-provenance subject both reference the branch you release from.
-
-**2. Create a GitHub token** (Settings → Developer settings → Personal access
-tokens). It needs `public_repo` **and** `workflow` — without `workflow`, the push
-is rejected the moment it carries a change to `.github/workflows/`.
-
-**3. Add the push mirror in Gitea.** Repository → Settings → Repository →
-*Mirror Settings* → **Add Push Mirror**:
-
-| Field | Value |
-| --- | --- |
-| Git Remote Repository URL | `https://github.com/coracle-social/n8n-nodes-nostr.git` |
-| Authorization | your GitHub username, with the token as the password |
-| Sync when new commits are pushed | enable it (Gitea 1.18+) |
-
-Press **Synchronize Now**. Branches *and tags* replicate.
-
-**4. Add the npm token on GitHub.** Create an npm **granular access token** with
-read+write on `n8n-nodes-nostr` (or an Automation token), then add it to the
-mirror repo as the secret `NPM_TOKEN`.
+Create an npm **granular access token** with read+write on `n8n-nodes-nostr` (or
+an Automation token) and add it to the repo as the secret `NPM_TOKEN`.
 
 Provenance does **not** require npm Trusted Publishing — a token plus
 `--provenance` and `id-token: write` is enough. That matters, because a Trusted
@@ -441,25 +403,28 @@ the first release has to use a token. You can switch afterwards.
 ```bash
 npm version patch          # or minor / major — updates package.json, makes a tag
 git push origin main
-git push origin --tags     # the tag reaches GitHub via the mirror
+git push origin --tags
 ```
 
-The tag triggers `.github/workflows/publish.yml` on the mirror. It re-runs the
-whole gate, asserts the tag matches `package.json`'s version, then publishes with
-provenance.
+The tag triggers `.github/workflows/publish.yml`, which re-runs the whole gate,
+asserts the tag matches `package.json`'s version, then publishes with provenance.
+Cutting a GitHub Release, or dispatching the workflow by hand, does the same.
 
-The trigger is `push: tags: ['v*']`, not `release: published`. Gitea's mirror
-replicates commits and tags, but it cannot create a **GitHub Release** — a
-release-only trigger would never fire. (`release: published` and
-`workflow_dispatch` are kept as manual escape hatches.)
+Running `npm publish` from a laptop **fails on purpose**:
 
-Two things that surprise people:
+```
+npm error EUSAGE Automatic provenance generation not supported for provider: <name>
+```
 
-- Workflows **do** run on mirror-pushed commits, because the mirror authenticates
-  as you via the token. Pushes made with the built-in `GITHUB_TOKEN` are the ones
-  that don't trigger workflows.
-- The mirror force-pushes. Never commit directly on GitHub; it is erased on the
-  next sync.
+That guard is the point. It makes it impossible to accidentally ship an
+unattested build that n8n would then refuse to verify.
+
+### Keeping a self-hosted copy
+
+If you want the code mirrored onto your own Gitea, use a **pull** mirror: Gitea
+fetches from GitHub, needs no credentials for a public repo, and cannot
+force-push over your source of truth. Note that Gitea can only create a pull
+mirror at migration time — an existing repository cannot be converted into one.
 
 ## Development
 

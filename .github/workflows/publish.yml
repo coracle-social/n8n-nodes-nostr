@@ -1,26 +1,22 @@
 name: Publish
 
-# This workflow runs on the GitHub MIRROR only. Gitea (gitea.coracle.social) is
-# the primary remote; it push-mirrors here so this can publish with npm provenance.
+# Publishes to npm with provenance.
 #
-# Provenance is not optional: n8n's verification requires it, and
-# @n8n/scan-community-package hard-fails a package whose registry metadata has
-# no `dist.attestations.provenance`. npm can only generate it under
-# GITHUB_ACTIONS or GITLAB_CI, because it signs via Sigstore using the CI's OIDC
-# token. That is the entire reason this mirror exists.
+# Provenance is not optional for this package: n8n's verification requires it,
+# and @n8n/scan-community-package hard-fails a package whose registry metadata
+# has no `dist.attestations.provenance`. npm can only generate it under
+# GITHUB_ACTIONS or GITLAB_CI, because it signs the attestation through Sigstore
+# using the CI's OIDC token. That is why this repo lives on GitHub.
 #
-# `provenance` attests repository + commit, so package.json's `repository.url`
-# must point at THIS repo, not at Gitea.
+# Provenance attests repository + commit, so package.json's `repository.url`
+# must match this repo, case-sensitively.
 
 on:
-  # Gitea's push mirror replicates branches and tags, but NOT releases — a
-  # mirrored tag creates no GitHub Release, so `release: published` alone would
-  # never fire. Tagging on Gitea is what triggers a publish.
-  push:
-    tags: ['v*']
-  # Kept so cutting a Release by hand on GitHub also publishes.
   release:
     types: [published]
+  # A plain `npm version && git push --tags` releases without opening the GitHub UI.
+  push:
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
