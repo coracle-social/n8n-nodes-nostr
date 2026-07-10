@@ -42,7 +42,7 @@ npm install n8n-nodes-nostr
 Restart n8n. See the n8n docs on
 [installing community nodes](https://docs.n8n.io/integrations/community-nodes/installation-and-management.md).
 
-## Credential — Nostr Private Key API
+## Credentials
 
 | Field | Description |
 | --- | --- |

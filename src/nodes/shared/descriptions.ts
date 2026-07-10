@@ -6,7 +6,7 @@ export const relaysField: INodeProperties = {
 	type: 'string',
 	typeOptions: { rows: 3 },
 	default: '',
-	placeholder: 'wss://relay.damus.io\nwss://nos.lol',
+	placeholder: 'e.g. wss://relay.damus.io',
 	description:
 		'One relay URL per line. Leave empty to use the default relays from your credential.',
 }
@@ -78,7 +78,7 @@ export const tagFiltersField: INodeProperties = {
 					name: 'tag',
 					type: 'string',
 					default: 't',
-					placeholder: 't',
+					placeholder: 'e.g. t',
 					description: 'A single-letter tag name, such as e, p or t',
 				},
 				{
@@ -86,7 +86,7 @@ export const tagFiltersField: INodeProperties = {
 					name: 'values',
 					type: 'string',
 					default: '',
-					placeholder: 'nostr, bitcoin',
+					placeholder: 'e.g. nostr, bitcoin',
 					description: 'Comma-separated values to match for this tag',
 				},
 			],

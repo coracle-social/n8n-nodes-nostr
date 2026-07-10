@@ -35,7 +35,7 @@ export const description: INodeProperties[] = [
 		required: true,
 		displayOptions: { show: { resource: ['encryption'] } },
 		default: '',
-		placeholder: 'npub1… or 64-character hex',
+		placeholder: 'e.g. npub1… or 64-character hex',
 		description:
 			'The other party public key. The conversation key is derived from it and your own secret key.',
 	},

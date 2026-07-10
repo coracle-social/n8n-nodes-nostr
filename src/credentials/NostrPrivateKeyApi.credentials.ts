@@ -17,7 +17,7 @@ export class NostrPrivateKeyApi implements ICredentialType {
 			typeOptions: { password: true },
 			required: true,
 			default: '',
-			placeholder: 'nsec1… or 64-character hex',
+			placeholder: 'e.g. nsec1… or 64-character hex',
 			description:
 				'Your Nostr secret key, as an nsec bech32 string or 64-character hex. Stored encrypted by n8n. Anyone with this key can post as you.',
 		},

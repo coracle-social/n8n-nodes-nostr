@@ -39,7 +39,7 @@ export const description: INodeProperties[] = [
 		required: true,
 		displayOptions: { show: { resource: ['utility'], operation: ['decode'] } },
 		default: '',
-		placeholder: 'npub1… / nevent1… / naddr1…',
+		placeholder: 'e.g. npub1… / nevent1… / naddr1…',
 		description: 'The bech32 entity to decode',
 	},
 	{
