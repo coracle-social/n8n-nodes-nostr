@@ -388,15 +388,36 @@ It lives on GitHub for one reason: **npm provenance**.
 Provenance attests *repository and commit*, so `package.json`'s `repository.url`
 must match this repo **case-sensitively**.
 
-### One-time setup
+### One-time setup: trusted publishing
 
-Create an npm **granular access token** with read+write on `n8n-nodes-nostr` (or
-an Automation token) and add it to the repo as the secret `NPM_TOKEN`.
+Publishing uses npm **Trusted Publishing** (OIDC). No `NPM_TOKEN` secret exists,
+and none should: the alternative — a granular token with *Bypass 2FA* — is
+something npm itself warns against for CI.
 
-Provenance does **not** require npm Trusted Publishing — a token plus
-`--provenance` and `id-token: write` is enough. That matters, because a Trusted
-Publisher cannot be configured for a package that does not exist on npm yet, so
-the first release has to use a token. You can switch afterwards.
+There is a bootstrap problem. `npm trust` states that *"the package you're
+configuring must already exist on the npm registry"*, so a brand-new name cannot
+be configured before its first publish. Break the cycle once:
+
+```bash
+# 1. Claim the name with one manual, unattested publish.
+npm login                                   # interactive, 2FA prompt
+npm publish --no-provenance                 # overrides publishConfig for this one release
+
+# 2. Now that the package exists, hand publishing rights to the workflow.
+npm trust github n8n-nodes-nostr \
+  --repo coracle-social/n8n-nodes-nostr \
+  --file publish.yml
+
+npm trust list n8n-nodes-nostr               # confirm it took
+```
+
+`npm trust` needs a recent npm (`npm install -g npm@latest`) and account-level
+2FA. From then on every release is published by the workflow over OIDC, with
+provenance, and no long-lived credential exists anywhere.
+
+The version published in step 1 has **no provenance**, by definition. That is
+fine — it exists only to claim the name. The first release you submit to n8n for
+verification must be a later version, published by the workflow.
 
 ### Cutting a release
 
@@ -410,6 +431,13 @@ The tag triggers `.github/workflows/publish.yml`, which re-runs the whole gate,
 asserts the tag matches `package.json`'s version, then publishes with provenance.
 Cutting a GitHub Release, or dispatching the workflow by hand, does the same.
 
+Two things the workflow has to get right, both easy to miss:
+
+- **npm must be upgraded in CI.** `node-version: 22` bundles npm 10.x, and
+  trusted publishing needs **npm >= 11.5.1**. Without the upgrade step, `npm
+  publish` falls back to token auth and dies with `ENEEDAUTH`.
+- **`id-token: write`** must be granted, or the OIDC exchange never happens.
+
 Running `npm publish` from a laptop **fails on purpose**:
 
 ```
@@ -417,7 +445,19 @@ npm error EUSAGE Automatic provenance generation not supported for provider: <na
 ```
 
 That guard is the point. It makes it impossible to accidentally ship an
-unattested build that n8n would then refuse to verify.
+unattested build that n8n would then refuse to verify. (The bootstrap publish
+above sidesteps it explicitly with `--no-provenance`.)
+
+### Verifying a release
+
+```bash
+npm view n8n-nodes-nostr dist.attestations   # must be non-empty
+npx @n8n/scan-community-package n8n-nodes-nostr
+```
+
+The second command is the real test. It is the same analyser `npm run scan` runs
+locally, except it also fetches the registry metadata and runs the provenance
+check that n8n's verification depends on.
 
 ## Development
 
