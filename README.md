@@ -52,16 +52,9 @@ This package provides two nodes and one credential.
 
 ## Installation
 
-> **Status:** this package is built to n8n's
-> [verified community node guidelines](https://docs.n8n.io/connect/create-nodes/build-your-node/reference/verification-guidelines.md)
-> — MIT licensed, zero runtime dependencies, no environment or filesystem access —
-> and it passes `@n8n/scan-community-package`, the static analyser n8n runs on
-> submissions. It has **not been published to npm or submitted for verification
-> yet**, so there is nothing for n8n to fetch. To try it today, build it and
-> install it yourself: see
-> [Running it in a local n8n instance](#running-it-in-a-local-n8n-instance).
-
-Once it is published, either of these will work on a self-hosted instance:
+Requires a **self-hosted** n8n. The package is on npm and passes
+`@n8n/scan-community-package`, n8n's own analyser, but it has not been submitted
+for verification — and unverified community nodes are not offered on n8n Cloud.
 
 **Community Nodes UI** — Settings → Community Nodes → Install, enter
 `n8n-nodes-nostr`. Requires an Owner or Admin account.
@@ -76,9 +69,6 @@ npm install n8n-nodes-nostr
 
 Restart n8n. See the n8n docs on
 [installing community nodes](https://docs.n8n.io/integrations/community-nodes/installation-and-management.md).
-
-Unverified community nodes are not available on n8n Cloud; you need a
-self-hosted instance until the package is verified.
 
 ## Credential — Nostr Private Key API
 
@@ -253,8 +243,9 @@ long before it reaches the scanner.
 
 ## Running it in a local n8n instance
 
-The package is not on npm, so n8n cannot fetch it. Build it and install it into a
-container yourself. Every command below was run end to end against **n8n 2.29.9**.
+For working on the node itself: build it and install it into a container from
+source, rather than pulling the published version. Every command below was run
+end to end against **n8n 2.29.9**.
 
 ### 1. Get the image
 
@@ -364,107 +355,6 @@ then hard-refresh the editor — it caches node types.
   not identical to how a published package behaves — `n8n:reload` exercises the
   real path.
 
-## Publishing and verification
-
-The canonical repo is
-[coracle-social/n8n-nodes-nostr](https://github.com/coracle-social/n8n-nodes-nostr)
-on GitHub. `.github/workflows/ci.yml` runs the full gate on every push and pull
-request: lint, tests, build, `verify-dist`, n8n's static analyser, and a check
-that the vendored crypto still reproduces from upstream.
-
-It lives on GitHub for one reason: **npm provenance**.
-
-1. n8n's
-   [verification guidelines](https://docs.n8n.io/connect/create-nodes/build-your-node/reference/verification-guidelines.md)
-   state that *"From May 1st 2026, nodes submitted for verification must be
-   published using GitHub Actions with a provenance statement."*
-2. n8n's own scanner enforces it. `@n8n/scan-community-package` reads
-   `dist.attestations.provenance` from the npm registry and fails with *"Package
-   was not published with npm provenance"* when it is absent.
-3. npm can only generate provenance under `GITHUB_ACTIONS` or `GITLAB_CI`. It
-   does not merely read an environment variable — it signs the attestation
-   through Sigstore using the CI's OIDC token, so no other forge can produce one.
-
-Provenance attests *repository and commit*, so `package.json`'s `repository.url`
-must match this repo **case-sensitively**.
-
-### One-time setup: trusted publishing
-
-Publishing uses npm **Trusted Publishing** (OIDC). The workflow holds no secrets,
-and there is no long-lived credential anywhere.
-
-```bash
-npm trust github n8n-nodes-nostr \
-  --repo coracle-social/n8n-nodes-nostr \
-  --file publish.yml
-
-npm trust list n8n-nodes-nostr    # confirm it took
-```
-
-`npm trust` needs npm >= 11.5.1 and account-level 2FA.
-
-Do **not** create a permanent CI token with *Bypass 2FA*. npm warns against it,
-and trusted publishing makes it unnecessary.
-
-<details>
-<summary>How the first release was bootstrapped</summary>
-
-`npm trust` requires that *"the package you're configuring must already exist on
-the npm registry"*, so a brand-new name cannot be configured before its first
-publish. Version `0.1.1` was therefore published from CI with a temporary
-granular access token in a `NPM_TOKEN` secret, which was then revoked.
-
-That first release still carried provenance. Provenance does not depend on how
-you authenticate: npm gates it on `GITHUB_ACTIONS` + `ACTIONS_ID_TOKEN_REQUEST_URL`
-(hence `id-token: write`), never on the registry credential.
-
-</details>
-
-### Cutting a release
-
-```bash
-npm version patch          # or minor / major — updates package.json, makes a tag
-git push origin main
-git push origin --tags
-```
-
-The tag triggers `.github/workflows/publish.yml`, which re-runs the whole gate,
-asserts the tag matches `package.json`'s version, then publishes with provenance.
-Cutting a GitHub Release, or dispatching the workflow by hand, does the same.
-
-Two things the workflow has to get right, both easy to miss:
-
-- **npm must be upgraded in CI.** `node-version: 22` bundles npm 10.x, and
-  trusted publishing needs **npm >= 11.5.1**. The upgrade is pinned to `npm@^11.5.1`
-  rather than `@latest`, because npm 12 requires node `^22.22.2 || ^24.15.0 || >=26`
-  and `@latest` would silently couple this step to whatever node the runner resolves.
-- **`id-token: write`** must be granted, or provenance generation fails `EUSAGE`.
-
-Running `npm publish` from a laptop **fails on purpose**:
-
-```
-npm error EUSAGE Automatic provenance generation not supported for provider: <name>
-```
-
-That guard is the point. It makes it impossible to accidentally ship an
-unattested build that n8n would then refuse to verify.
-
-### Verifying a release
-
-```bash
-npx @n8n/scan-community-package n8n-nodes-nostr
-```
-
-This is the real test — the same analyser `npm run scan` runs locally, except it
-also fetches the registry metadata and runs the provenance check that n8n's
-verification depends on. A passing run looks like:
-
-```
-Checking provenance for n8n-nodes-nostr@0.1.1...✅ Provenance check passed
-Analyzing n8n-nodes-nostr@0.1.1...✅ Analyzed
-✅ Package n8n-nodes-nostr@0.1.1 has passed all security checks
-```
-
 ## Development
 
 ```bash
@@ -480,8 +370,11 @@ npm run n8n:reload  # rebuild and reinstall into a running n8n container
 ```
 
 `npm publish --dry-run` runs the whole `prepublishOnly` chain (build → lint →
-test → verify → scan) without contacting the registry, and without generating
-provenance. It is the closest local approximation of a release.
+test → verify → scan) without contacting the registry. It is the closest local
+approximation of a release.
+
+Releases are automated: tagging `v*` publishes to npm from GitHub Actions with
+provenance. See `.github/workflows/publish.yml`.
 
 `npm run prepublishOnly` chains build → lint → test → verify → scan, so a
 release cannot skip any of them.
